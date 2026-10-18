@@ -39,6 +39,7 @@ class DynamicRag extends RAG
                 (float) ($this->config['temperature'] ?? 0.7),
                 $this->config['max_tokens'] ?? null,
             ),
+            $this->getThreadId(),
         );
     }
 

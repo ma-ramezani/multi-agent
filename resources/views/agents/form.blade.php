@@ -9,6 +9,15 @@
 <div class="col-span-2"><label class="text-sm">توضیح</label><input name="description" value="{{ old('description',$agent->description) }}" class="w-full border rounded p-2"></div>
 <div><label class="text-sm">پرووایدر *</label><select name="provider" class="w-full border rounded p-2">@foreach(\App\Models\Agent::providers() as $k=>$v)<option value="{{ $k }}" {{ old('provider',$agent->provider)==$k?'selected':'' }}>{{ $v }}</option>@endforeach</select></div>
 <div><label class="text-sm">مدل *</label><input name="model" value="{{ old('model',$agent->model) }}" class="w-full border rounded p-2" dir="ltr" placeholder="gpt-4o-mini / claude-3-5-sonnet / llama3.1 ..."></div>
+<div class="col-span-2 bg-sky-50 border border-sky-200 rounded p-3 text-sm">
+<b>مدل‌های پیشنهادی OpenCode Go</b> (کلید را در <code dir="ltr">OPENCODE_GO_API_KEY</code> بگذارید):
+<span dir="ltr">longcat-2.5-preview-free (رایگان)</span> ·
+<span dir="ltr">mimo-v2.6-flash</span> ·
+<span dir="ltr">muse-spark-1.3-contributor</span> ·
+<span dir="ltr">glm-5.3-flash</span> ·
+<span dir="ltr">deepseek-v4.1-flash</span> ·
+<span dir="ltr">qwen3.8-flash</span>
+</div>
 <div><label class="text-sm">API Key (خالی = از env خوانده می‌شود)</label><input name="api_key" value="" type="password" class="w-full border rounded p-2" dir="ltr" placeholder="{{ $agent->exists&&$agent->api_key?'••• ذخیره شده •••':'' }}"></div>
 <div><label class="text-sm">Base URL (برای Ollama / OpenAI-Like)</label><input name="base_url" value="{{ old('base_url',$agent->base_url) }}" class="w-full border rounded p-2" dir="ltr" placeholder="http://localhost:11434/api"></div>
 <div class="col-span-2"><label class="text-sm">System Prompt (دستورالعمل ایجنت)</label><textarea name="system_prompt" rows="4" class="w-full border rounded p-2">{{ old('system_prompt',$agent->system_prompt) }}</textarea></div>

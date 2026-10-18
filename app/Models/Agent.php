@@ -50,6 +50,7 @@ class Agent extends Model
     {
         return [
             'openai' => 'OpenAI',
+            'opencode_go' => 'OpenCode Go (ارزان/رایگان)',
             'openai_responses' => 'OpenAI Responses',
             'anthropic' => 'Anthropic',
             'gemini' => 'Gemini',

@@ -33,6 +33,7 @@ class AgentFactory
             'mistral' => env('MISTRAL_API_KEY'),
             'deepseek' => env('DEEPSEEK_API_KEY'),
             'grok' => env('GROK_API_KEY'),
+            'opencode_go' => env('OPENCODE_GO_API_KEY'),
             default => null,
         };
     }

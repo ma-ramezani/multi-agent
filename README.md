@@ -5,7 +5,7 @@
 ## امکانات
 
 - ✅ مدیریت ایجنت‌ها از وب (نام، پرووایدر، مدل، API Key، System Prompt، Temperature، Max Tokens،...)
-- ✅ پرووایدرها: OpenAI، OpenAI Responses، Anthropic، Gemini، Ollama، Mistral، DeepSeek، Grok، ZAI، Cohere، OpenAI-Like / Azure
+- ✅ پرووایدرها: **OpenCode Go (ارزان/رایگان)**، OpenAI، OpenAI Responses، Anthropic، Gemini، Ollama، Mistral، DeepSeek، Grok، ZAI، Cohere، OpenAI-Like / Azure
 - ✅ ابزارها (Tools) قابل انتخاب برای هر ایجنت: ماشین‌حساب، تقویم، فایل‌سیستم، WebFetch، خواندن دیتابیس (فقط SELECT)
 - ✅ محیط‌های RAG: ساخت چند محیط دانش، آپلود فایل (txt/md/csv/json) یا متن دستی، چانکینگ + امبدینگ خودکار
 - ✅ اتصال هر ایجنت به چند محیط RAG (بازیابی با FallbackRetrieval: اگر امبدینگ fail شود جستجوی کلیدواژه‌ای)
@@ -28,7 +28,19 @@ php artisan serve
 OPENAI_API_KEY=sk-...
 # یا
 OLLAMA_URL=http://localhost:11434/api
+# یا OpenCode Go (ارزان/رایگان — https://opencode.ai/v2/docs/console/go/)
+OPENCODE_GO_API_KEY=...
 ```
+
+## OpenCode Go
+
+پرووایدر `opencode_go` در فرم ایجنت انتخاب می‌شود. مدل پیش‌فرض: `longcat-2.5-preview-free` (رایگان).
+مدل‌های ارزان دیگر: `mimo-v2.6-flash`، `muse-spark-1.3-contributor`، `glm-5.3-flash`، `deepseek-v4.1-flash`، `qwen3.8-flash`.
+
+تفاوت‌های پیاده‌سازی (`app/Neuron/Providers/OpenCodeGo.php`):
+- Base URL برابر `https://opencode.ai/inference/go/openai/v1` است (سازگار با OpenAI chat/completions)
+- هدرهای اضافی طبق مستندات ارسال می‌شود: `User-Agent: neuron-laravel-agent/1.0` و `x-opencode-session: <thread_id>` (شناسه پایدار هر گفتگو برای routing و prompt caching)
+- تحمل استریم‌های بدون `finish_reason`: اگر متن دریافت شده باشد، پاسخ کامل برگردانده می‌شود (رفع خطای `The stream ended before the answer was complete.`)
 
 > بدون کلید هم RAG با جستجوی کلیدواژه‌ای کار می‌کند، ولی چت با LLM نیاز به کلید/مدل در دسترس دارد.
 

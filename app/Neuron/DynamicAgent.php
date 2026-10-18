@@ -38,6 +38,7 @@ class DynamicAgent extends Agent
                 (float) ($this->config['temperature'] ?? 0.7),
                 $this->config['max_tokens'] ?? null,
             ),
+            $this->getThreadId(),
         );
     }
 
