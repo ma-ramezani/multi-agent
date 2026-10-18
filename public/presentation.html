@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>از صفر تا پلتفرم ایجنت هوشمند | ارائه‌ی مدرس توسعه نرم‌افزار</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#0d1117; --bg2:#131a26; --card:#161e2e; --line:#26314a;
+    --txt:#e8edf5; --mut:#9aa7c2; --acc:#4f8cff; --acc2:#22c07a; --warn:#f5a524; --bad:#f4554d;
+    --vio:#9b6bff;
+  }
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--txt);font-family:Tahoma,"Segoe UI",sans-serif;overflow:hidden}
+  .deck{height:100vh;width:100vw;position:relative}
+  .slide{position:absolute;inset:0;display:none;padding:6vh 7vw;overflow-y:auto}
+  .slide.active{display:flex;flex-direction:column;justify-content:center;animation:fade .35s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .kicker{display:inline-block;font-size:13px;color:var(--acc);border:1px solid var(--acc);border-radius:99px;padding:4px 14px;margin-bottom:18px;letter-spacing:.5px}
+  h1{font-size:clamp(30px,4.6vw,58px);line-height:1.5;font-weight:800}
+  h1 .hl{color:var(--acc)}
+  h2{font-size:clamp(24px,3.2vw,40px);margin-bottom:20px;font-weight:800}
+  h2 .n{color:var(--acc);font-size:.7em;border:1px solid var(--line);border-radius:10px;padding:2px 10px;margin-left:10px}
+  p.sub{color:var(--mut);font-size:clamp(14px,1.5vw,19px);line-height:2.1;margin-top:14px;max-width:1000px}
+  ul{list-style:none;margin-top:16px;display:flex;flex-direction:column;gap:12px;max-width:1050px}
+  ul li{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 18px;font-size:clamp(13px,1.4vw,17px);line-height:2}
+  ul li b{color:#fff}
+  .tag{display:inline-block;font-size:12px;border-radius:8px;padding:1px 10px;margin-left:8px;vertical-align:middle}
+  .t-ok{background:rgba(34,192,122,.15);color:var(--acc2);border:1px solid var(--acc2)}
+  .t-bad{background:rgba(244,85,77,.13);color:var(--bad);border:1px solid var(--bad)}
+  .t-warn{background:rgba(245,165,36,.13);color:var(--warn);border:1px solid var(--warn)}
+  .t-info{background:rgba(79,140,255,.13);color:var(--acc);border:1px solid var(--acc)}
+  .t-vio{background:rgba(155,107,255,.13);color:var(--vio);border:1px solid var(--vio)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px;max-width:1100px}
+  @media(max-width:800px){.grid2{grid-template-columns:1fr}}
+  .box{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px}
+  .box h3{font-size:16px;margin-bottom:10px;color:#fff}
+  .box p,.box li{font-size:14px;line-height:2;color:var(--mut)}
+  .box code{color:#ffd479}
+  code{font-family:Consolas,monospace;font-size:.88em;background:#0a0e16;border:1px solid var(--line);border-radius:6px;padding:1px 7px;direction:ltr;display:inline-block}
+  table{width:100%;max-width:1100px;border-collapse:collapse;margin-top:16px;font-size:clamp(12px,1.3vw,15px)}
+  th,td{border:1px solid var(--line);padding:10px 12px;text-align:right;line-height:1.9;vertical-align:top}
+  th{background:var(--bg2);color:#fff}
+  td:first-child{font-weight:700;color:#fff;white-space:nowrap}
+  .flow{display:flex;align-items:stretch;gap:0;margin-top:20px;flex-wrap:wrap;max-width:1150px}
+  .step{flex:1;min-width:140px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center;font-size:14px;line-height:2}
+  .step b{display:block;font-size:26px}
+  .arrow{align-self:center;color:var(--acc);font-size:22px;padding:0 6px}
+  .hud{position:fixed;bottom:0;left:0;right:0;height:44px;display:flex;align-items:center;gap:14px;padding:0 20px;background:rgba(13,17,23,.92);border-top:1px solid var(--line);font-size:13px;color:var(--mut);z-index:10}
+  .hud button{background:var(--bg2);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:5px 14px;cursor:pointer;font-family:inherit;font-size:13px}
+  .hud button:hover{border-color:var(--acc);color:#fff}
+  #bar{position:fixed;top:0;right:0;height:4px;background:linear-gradient(90deg,var(--vio),var(--acc));width:0;z-index:11}
+  #notes{position:fixed;bottom:52px;right:16px;left:16px;max-height:32vh;overflow:auto;background:#0a0e16;border:1px solid var(--warn);border-radius:12px;padding:14px 18px;font-size:13.5px;line-height:2.1;color:#ffe1a8;display:none;z-index:9}
+  #notes.show{display:block}
+  #notes b{color:var(--warn)}
+  .cover{display:flex;gap:26px;align-items:center;flex-wrap:wrap}
+  .robot{font-size:110px;filter:drop-shadow(0 0 30px rgba(79,140,255,.5))}
+  .meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+  .meta span{font-size:12.5px;color:var(--mut);border:1px dashed var(--line);border-radius:99px;padding:5px 14px}
+  @media print{.hud,#bar,#notes{display:none}.slide{position:static;display:flex!important;page-break-after:always;height:auto}}
+</style>
+</head>
+<body>
+<div id="bar"></div>
+<div class="deck" id="deck">
+
+<!-- ۱ -->
+<section class="slide active" data-notes="سلام و خوش‌آمد. بگو این ارائه گزارش واقعی یک پروژه‌ی واقعی است نه تئوری خشک: از یک درخواست ساده شروع شد و به پلتفرم کامل رسید. مخاطب را دعوت کن در هر اسلاید دنبال «تصمیم» و «درس» باشد.">
+  <div class="cover">
+    <div class="robot">🤖</div>
+    <div>
+      <span class="kicker">ارائه‌ی درس توسعه‌ی نرم‌افزار — مطالعه‌ی موردی واقعی</span>
+      <h1>از صفر تا <span class="hl">پلتفرم ایجنت هوشمند</span><br>با Laravel و Neuron AI</h1>
+      <p class="sub">یک درخواست ساده‌ی کارفرما، تبدیل شد به محصولی با چت زنده، RAG فارسی، OCR، صف پس‌زمینه و API — و در مسیرش ۱۲ باگ واقعی پیدا و رفع شد. این ارائه، نقشه‌ی راه همان مسیر است.</p>
+      <div class="meta"><span>⏱ حدود ۴۵ دقیقه</span><span>🎯 سطح: متوسط تا پیشرفته</span><span>🛠 Laravel 12 · Neuron AI 4 · Ollama · Tesseract</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ۲ -->
+<section class="slide" data-notes="تأکید کن: قبل از کدنویسی، تسک را به «قابلیت‌های قابل تحویل» شکستم. این مهم‌ترین عادت حرفه‌ای است: ابهام را با سؤال و نمونه روشن کردن، نه حدس زدن.">
+  <span class="kicker">۱ · شناخت مسئله</span>
+  <h2><span class="n">۰۱</span>تسک اولیه چه بود؟</h2>
+  <p class="sub">کارفرما به فارسی خواست: «با کتابخانه‌ی Neuron یک پروژه‌ی لاراول ۱۲ بساز که …» — جمله‌ها کلی بودند. من آن‌ها را به ۶ قابلیت قابل آزمون تبدیل کردم:</p>
+  <ul>
+    <li>💬 <b>چت زنده</b> با ایجنت + <b>آپلود فایل داخل چت</b> <span class="tag t-info">نیاز اصلی</span></li>
+    <li>🧠 <b>تعریف ایجنت‌های مختلف</b> که <b>همه‌ی تنظیماتشان از وب</b> انجام شود (پرووایدر، مدل، لحن، دما…)</li>
+    <li>📚 <b>محیط RAG</b> که بتوان هر ایجنت را به چند محیط وصل کرد + انتخاب <b>ابزارها</b> برای هر ایجنت</li>
+    <li>🔌 <b>API ساده</b> تا نرم‌افزارهای دیگر هم به ایجنت‌ها کار بدهند</li>
+  </ul>
+</section>
+
+<!-- ۳ -->
+<section class="slide" data-notes="از دانشجو بپرس: چرا لاراول؟ چون اکوسیستم آماده (صف، کش، اعتبارسنجی) سرعت می‌دهد. چرا Neuron؟ چون انتزاع پرووایدر/حافظه/ابزار/استریم را یکجا دارد و با PHP کار می‌کند. چرا Ollama لوکال؟ حریم خصوصی + هزینه صفر امبدینگ.">
+  <span class="kicker">۲ · تصمیم‌های معماری</span>
+  <h2><span class="n">۰۲</span>با چه چیزی ساختیم و چرا؟</h2>
+  <div class="grid2">
+    <div class="box"><h3>🧱 Laravel 12</h3><p>صف داخلی (queue)، اعتبارسنجی، Eloquent و Blade — برای اینکه به‌جای اختراع چرخ، روی منطق ایجنت تمرکز کنیم.</p></div>
+    <div class="box"><h3>🧠 Neuron AI 4</h3><p>انتزاع <code>Agent</code> ،<code>RAG</code> ،<code>Provider</code> ،<code>Tool</code> و استریم SSE — موتور استدلال پروژه.</p></div>
+    <div class="box"><h3>🔢 Ollama + nomic-embed-text</h3><p>امبدینگ <b>لوکال و رایگان</b> روی همان سرور؛ بدون وابستگی به کلید خارجی برای دانش داخلی.</p></div>
+    <div class="box"><h3>👁 Tesseract + poppler</h3><p>OCR فارسی/انگلیسی برای PDFهای اسکن‌شده و عکس‌ها — چون دنیای واقعی پر از فایل اسکن‌شده است.</p></div>
+  </div>
+</section>
+
+<!-- ۴ -->
+<section class="slide" data-notes="نکته‌ی آموزشی: لایه‌بندی. مدل‌های دیتابیس فقط داده‌اند؛ کل هوش در لایه‌ی Neuron است. DynamicAgent یعنی «یک کلاس، بی‌نهایت ایجنت» — تنظیمات از دیتابیس می‌آیند. این همان اصل configuration over code است.">
+  <span class="kicker">۳ · طراحی سیستم</span>
+  <h2><span class="n">۰۳</span>نقشه‌ی ساختمان پروژه</h2>
+  <div class="flow">
+    <div class="step"><b>🗄️</b>مدل‌ها<br><small style="color:var(--mut)">Agent · RagEnv<br>Document · Chunk<br>Session · Token</small></div><div class="arrow">◀</div>
+    <div class="step"><b>⚙️</b>موتور Neuron<br><small style="color:var(--mut)">DynamicAgent<br>AgentFactory<br>ToolRegistry</small></div><div class="arrow">◀</div>
+    <div class="step"><b>📚</b>دانش (RAG)<br><small style="color:var(--mut)">DocumentReader<br>VectorStore<br>Hybrid Retrieval</small></div><div class="arrow">◀</div>
+    <div class="step"><b>💬</b>رابط‌ها<br><small style="color:var(--mut)">وب فارسی + SSE<br>API با توکن</small></div>
+  </div>
+  <ul>
+    <li>🔑 ایده‌ی کلیدی: <b>یک کلاس داینامیک</b> که با کانفیگ دیتابیس، هر پرووایدر/ابزار/RAG را می‌سازد — افزودن مدل جدید یعنی فقط یک رکورد، نه یک کلاس جدید.</li>
+  </ul>
+</section>
+
+<!-- ۵ -->
+<section class="slide" data-notes="از کلاس بپرس: وقتی کارفرما «فایل ورد و اکسل و عکس هم بخوان» گفت، دو راه داشتی: یک کتابخانه‌ی سنگین برای هر فرمت، یا یک لایه‌ی یکپارچه. ما دومی را انتخاب کردیم: DocumentReader. اصل Single Responsibility در عمل.">
+  <span class="kicker">۴ · خواندن دنیای واقعی</span>
+  <h2><span class="n">۰۴</span>از txt تا عکس: <code>DocumentReader</code></h2>
+  <p class="sub">اول فقط متن ساده پشتیبانی می‌شد. بعد کارفرما خواست: ورد، اکسل، پاورپوینت، PDF، عکس… راه‌حل، یک سرویس واحد شد:</p>
+  <table>
+    <tr><th>فرمت</th><th>روش استخراج</th><th>نکته</th></tr>
+    <tr><td>PDF متنی</td><td>pdfparser (صفحه‌به‌صفحه)</td><td>اگر متن نداشت ← مسیر OCR</td></tr>
+    <tr><td>PDF اسکن‌شده</td><td><code>pdftoppm</code> + <code>tesseract fas</code></td><td>خودکار، در صف پس‌زمینه</td></tr>
+    <tr><td>Word / Excel / PPT</td><td>زیپ + XML / PhpSpreadsheet</td><td>جدول‌ها به صورت متنی <code>|</code> حفظ می‌شوند</td></tr>
+    <tr><td>عکس</td><td>OCR فارسی + انگلیسی</td><td>با نرمالایز حروف و حذف علائم نامرئی</td></tr>
+  </table>
+</section>
+
+<!-- ۶ -->
+<section class="slide" data-notes="اینجا داستان «چرا صف؟» را بگو: OCR هر صفحه چند ثانیه طول می‌کشد؛ ۸۲ صفحه یعنی ده‌ها دقیقه — غیرممکن در یک رکوئست HTTP. قانون طلایی: کار بیش از چند ثانیه = صف + ورکر + وضعیت قابل مشاهده.">
+  <span class="kicker">۵ · کارهای سنگین</span>
+  <h2><span class="n">۰۵</span>چرا صف پس‌زمینه؟ (یک تصمیم سرنوشت‌ساز)</h2>
+  <ul>
+    <li>⏳ OCR یک کتاب ۸۲ صفحه‌ای ≈ <b>۲۵ دقیقه</b> طول می‌کشد — هیچ رکوئست وبی نباید این‌قدر باز بماند.</li>
+    <li>📥 قانون ما: <b>PDF و فایل بالای ۳ مگ</b> می‌روند در صف (<code>IngestRagDocument</code>)، بقیه فوری ایندکس می‌شوند.</li>
+    <li>👷 ورکر دائمی با <code>systemd</code> بالا نگه داشته شد + صفحه‌ی سند با دیدن وضعیت <code>processing</code> <b>خودکار رفرش</b> می‌شود.</li>
+    <li>🎓 درس: <b>تشخیص «کار سنگین» و جدا کردن مسیر sync/async</b> از همان روز اول، نه وقتی که سرور قفل کرد.</li>
+  </ul>
+</section>
+
+<!-- ۷ -->
+<section class="slide" data-notes="این اسلاید قلب ارائه است. برای هر باگ سه سؤال بپرس: نشانه چه بود؟ علت ریشه‌ای چه بود؟ درس قابل انتقال چیست؟ از دانشجو بخواه برای هرکدام، اول خودش حدس بزند.">
+  <span class="kicker">۶ · شکار باگ (بخش اول)</span>
+  <h2><span class="n">۰۶</span>باگ‌هایی که ما را قوی‌تر کردند <span class="tag t-bad">۶ مورد اول</span></h2>
+  <table>
+    <tr><th>نشانه</th><th>علت ریشه‌ای</th><th>درمان + درس</th></tr>
+    <tr><td>Connection refused به OpenCode Go</td><td>Guzzle برخلاف curl، پروکسی env را نمی‌خواند</td><td>تزریق <code>proxy</code> از env — <b>ابزارها رفتار یکسان ندارند؛ با curl مقایسه کن</b></td></tr>
+    <tr><td>کرش استریم وب</td><td>متد <code>getResult()</code> در نسخه‌ی ۴.۱ وجود نداشت</td><td>خواندن سورس نسخه‌ی واقعی، نه حدس از مستندات — <b>کد مرجع نهایی است</b></td></tr>
+    <tr><td>«فایل یافت نشد» بعد از آپلود موفق!</td><td>ریشه‌ی دیسک local در لاراول ۱۲ <code>storage/app/private</code> است نه <code>storage/app</code></td><td>همیشه از <code>Storage::disk()</code> مسیر بگیر — <b>پیش‌فرض‌ها بین نسخه‌ها عوض می‌شوند</b></td></tr>
+  </table>
+</section>
+
+<!-- ۸ -->
+<section class="slide" data-notes="باگ متن معکوس بهترین مثال «باگ ظریف» است: سیستم کار می‌کرد ولی خروجی غلط بود. روش تشخیص: نمونه‌ی واقعی دیتا را با چشم دیدم، نه فقط لاگ. تست خودکار برای این جنس باگ = تست طلایی با نمونه‌ی واقعی.">
+  <span class="kicker">۶ · شکار باگ (بخش دوم)</span>
+  <h2><span class="n">۰۷</span>متن فارسی آینه‌ای! <span class="tag t-bad">بحرانی‌ترین باگ</span></h2>
+  <ul>
+    <li>🪞 خروجی OCR این بود: <code>دنک ظفحدنک حلاصا</code> — کل کتاب عملاً ناخوانا!</li>
+    <li>🔍 ماتریس تست روی یک صفحه: <code>fas+eng</code> جهت را LTR حدس می‌زد، <code>fas</code> تنها درست بود → <b>زبان اول، جهت پاراگراف را تعیین می‌کند.</b></li>
+    <li>🧹 بعد: حذف نیم‌فاصله‌های چسبیده‌ی تسرکت (ZWNJ بین کلمات) + یکدست‌سازی ي/ك عربی + ایست‌واژه‌ها برای جست‌وجو.</li>
+    <li>🎓 درس: <b>برای زبان فارسی، خروجی موتور خارجی را هرگز بدون نرمالایز ذخیره نکن.</b></li>
+  </ul>
+</section>
+
+<!-- ۹ -->
+<section class="slide" data-notes="این باگ موردعلاقه‌ی من است چون «نامرئی» بود: همه‌چیز سبز، ولی ورکر کد قدیمی اجرا می‌کرد. قانون جدید تیم: بعد از هر دیپلوی، restart ورکر صف. در ارائه بپرس: چه کسی تا حالا قربانی کش قدیمی شده؟">
+  <span class="kicker">۶ · شکار باگ (بخش سوم)</span>
+  <h2><span class="n">۰۸</span>سه باگ نامرئی زیرساخت</h2>
+  <table>
+    <tr><th>نشانه</th><th>علت</th><th>درمان</th></tr>
+    <tr><td>بعد از فیکس، ورکر هنوز خروجی معکوس می‌داد!</td><td>دیمن <code>queue:work</code> فایل‌های PHP را یک‌بار لود می‌کند</td><td><b>ری‌استارت ورکر جزئی از فرایند دیپلوی شد</b></td></tr>
+    <tr><td>ایندکس یک کتاب، ساعت‌ها طول کشید و جلو نرفت</td><td><code>overlap=1000</code> با <code>size=1000</code> یعنی قدمِ ۱ کاراکتری!</td><td>گارد <code>overlap &lt; size/2</code> + اعتبارسنجی فرم</td></tr>
+    <tr><td>امبدینگ ۳۰۰ چانک، ۲۵ دقیقه!</td><td>به‌ازای هر چانک یک رکوئست جدا</td><td>بچ ۲۰تایی در یک کال → <b>۱۵ برابر سریع‌تر</b></td></tr>
+  </table>
+</section>
+
+<!-- ۱۰ -->
+<section class="slide" data-notes="نکته‌ی مهم برای تدریس: بازیابی اطلاعات فقط «وکتور» نیست. ترکیب معنایی + کلیدواژه‌ای + آگاهی از زبان، کیفیت را چند پله بالا برد. معیار ما: چهار سؤال طلایی که باید هر چهارتا سبز می‌شدند.">
+  <span class="kicker">۷ · کیفیت بازیابی</span>
+  <h2><span class="n">۰۹</span>وقتی وکتور به‌تنهایی کافی نیست</h2>
+  <ul>
+    <li>🔀 <b>بازیابی هیبرید</b>: اول وکتور، بعد کمبودها با جست‌وجوی کلیدواژه‌ای پر می‌شود (سقف ۲ برابر).</li>
+    <li>📏 <b>امتیاز چگالی</b>: به‌جای شمارش خام، امتیاز ÷ طول چانک — تا چانک‌های بلندِ پرتکرار، جواب دقیق کوتاه را دفن نکنند.</li>
+    <li>🚫 <b>ایست‌واژه‌های فارسی</b> (را، به، که، در…): بدون حذفشان، هر چانکی فقط با «را» گفتن اول می‌شد!</li>
+    <li>🎯 نتیجه: سؤال نویسنده، تلفن، جمله‌ی راهنما — <b>هر سه دقیق جواب داده شدند.</b></li>
+  </ul>
+</section>
+
+<!-- ۱۱ -->
+<section class="slide" data-notes="از کلاس بپرس: اگر جای من بودید با ۸۰ دقیقه انتظار چه می‌کردید؟ جواب درست: ابزار مشاهده (strace، لاگ، شمارنده) نه حدس و ری‌استارت کور. مشاهده‌پذیری، مهارت جدایی‌ناپذیر دیباگ است.">
+  <span class="kicker">۸ · روش‌شناسی دیباگ</span>
+  <h2><span class="n">۱۰</span>جعبه‌ابزار کارآگاهی ما</h2>
+  <div class="grid2">
+    <div class="box"><h3>🔬 strace روی ورکر زنده</h3><p>دیدیم رکوئست‌های <code>/api/embed</code> یکی‌یکی می‌روند → فهمیدیم امبدینگ بچ نشده، نه اینکه قفل کرده.</p></div>
+    <div class="box"><h3>🧪 اسکریپت‌های یک‌بارمصرف در <code>/tmp</code></h3><p>تست ایزوله‌ی OCR روی ۳ صفحه، قبل از سوزاندن ۲۵ دقیقه روی کل کتاب.</p></div>
+    <div class="box"><h3>📊 شمارش مستقیم در دیتابیس</h3><p>به‌جای اعتماد به حافظه: «چند چانک؟ چند وکتور؟ کدام صفحه‌ها پوشش داده شدند؟»</p></div>
+    <div class="box"><h3>🚦 قانون طلایی</h3><p>حین اجرای job، <b>نه kill، نه ری‌استارت، نه دیپلوی</b> — هر دخالت، ساعت‌ها زمان را دور می‌ریخت.</p></div>
+  </div>
+</section>
+
+<!-- ۱۲ -->
+<section class="slide" data-notes="جمع‌بندی کمی بده: تعداد قابلیت‌ها، فرمت‌ها، چانک‌ها، کامیت‌ها. بعد مسیر آینده: احراز هویت وب، صف برای چت، مدل vision برای عکس، تست خودکار (PHPT/Unit) برای DocumentReader و chunker. پایان با یک جمله‌ی ماندگار.">
+  <span class="kicker">۹ · جمع‌بندی</span>
+  <h2><span class="n">۱۱</span>از درخواست تا محصول — خلاصه‌ی راه</h2>
+  <ul>
+    <li>✅ وب فارسی کامل (ایجنت، RAG، چت زنده، توکن) + <b>API واقعیِ تست‌شده</b> + OCR فارسی + صف پس‌زمینه</li>
+    <li>📦 دانش نهایی: ۶۶ چانک شرکتی + ۷۹۹ چانک کتاب اول + ۱۴۸ چانک کتاب دوم — <b>همه وکتوردار و تست‌شده</b></li>
+    <li>🧭 سه اصل ماندگار: <b>اول بفهم، بعد بساز</b> · <b>با داده‌ی واقعی تست کن</b> · <b>زیرساخت را مثل کد، نسخه‌بندی و ری‌استارت کن</b></li>
+  </ul>
+  <p class="sub">قدم‌های بعدی پیشنهادی: احراز هویت وب، مدل vision برای تحلیل عکس، تست خودکار برای DocumentReader، و RAG چندزبانه. سؤال دارید؟ 🤝</p>
+</section>
+
+</div>
+
+<div id="notes"></div>
+<div class="hud">
+  <button onclick="move(-1)">→ قبلی</button>
+  <button onclick="move(1)">بعدی ←</button>
+  <span id="cnt">۱ / ۱۲</span>
+  <span style="margin-right:auto">کلیدها: جهت‌نما / Space · <b>N</b> یادداشت مدرس · <b>F</b> تمام‌صفحه</span>
+</div>
+
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var notes = document.getElementById('notes');
+  var bar = document.getElementById('bar');
+  var cnt = document.getElementById('cnt');
+  var i = 0, fa = ['۰','۱','۲','۳','۴','۵','۶','۷','۸','۹'];
+  function faNum(n){ return String(n).split('').map(function(c){return fa[+c]||c}).join(''); }
+  function show(n){
+    i = (n + slides.length) % slides.length;
+    slides.forEach(function(s,k){ s.classList.toggle('active', k===i); });
+    bar.style.width = ((i+1)/slides.length*100) + '%';
+    cnt.textContent = faNum(i+1) + ' / ' + faNum(slides.length);
+    notes.innerHTML = '<b>🎙 یادداشت مدرس:</b> ' + (slides[i].getAttribute('data-notes') || '—');
+    slides[i].scrollTop = 0;
+    try{ location.hash = 's'+(i+1); }catch(e){}
+  }
+  window.move = function(d){ show(i+d); };
+  document.addEventListener('keydown', function(e){
+    if(e.key==='ArrowLeft') show(i+1);          // RTL: left = next
+    else if(e.key==='ArrowRight') show(i-1);
+    else if(e.key===' '){ e.preventDefault(); show(i+1); }
+    else if(e.key==='n'||e.key==='N'||e.key==='ی') notes.classList.toggle('show');
+    else if(e.key==='f'||e.key==='F'){ var el=document.documentElement; if(document.fullscreenElement) document.exitFullscreen(); else if(el.requestFullscreen) el.requestFullscreen(); }
+  });
+  var m = location.hash.match(/s(\d+)/); if(m) i = Math.min(slides.length-1, Math.max(0, (+m[1])-1));
+  show(i);
+})();
+</script>
+</body>
+</html>
