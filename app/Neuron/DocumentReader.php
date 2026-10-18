@@ -21,6 +21,28 @@ class DocumentReader
     ];
 
     /**
+     * Normalize extracted text: strip invisible bidi marks left by OCR/PDF
+     * parsers, unify Arabic glyphs to Persian, collapse whitespace.
+     * Makes both keyword search and the LLM's reading more reliable.
+     */
+    public static function normalize(string $text): string
+    {
+        // invisible directional / zero-width marks
+        $text = str_replace(["\u{200E}", "\u{200F}", "\u{200B}", "\u{FEFF}"], '', $text);
+        // Tesseract inserts ZWNJ between words as bidi glue; a plain space is
+        // safer for search and LLM reading (می‌شود and می شود stay readable).
+        $text = str_replace("\u{200C}", ' ', $text);
+        // Arabic glyphs → Persian
+        $text = str_replace(['ي', 'ك', 'ة'], ['ی', 'ک', 'ه'], $text);
+        // Arabic-Indic digits → Persian digits (keep Latin digits as-is)
+        $text = str_replace(['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'], ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'], $text);
+        // collapse whitespace
+        $text = preg_replace('/[ \t\x{00A0}]+/u', ' ', $text);
+        $text = preg_replace('/\n{3,}/', "\n\n", $text);
+        return trim($text);
+    }
+
+    /**
      * @return array{text: string, kind: string, detail: string}
      */
     public static function read(string $absPath, ?string $mime = null, ?string $filename = null, bool $forceOcr = false): array
@@ -34,7 +56,7 @@ class DocumentReader
         // Force OCR for PDFs whose embedded text is garbled (e.g. reversed RTL).
         if ($forceOcr && $ext === 'pdf') {
             $out = self::pdfOcrText($absPath, null);
-            $out['text'] = mb_substr(trim((string) $out['text']), 0, self::MAX_CHARS);
+            $out['text'] = mb_substr(self::normalize((string) $out['text']), 0, self::MAX_CHARS);
             return $out;
         }
 
@@ -55,7 +77,7 @@ class DocumentReader
             return ['text' => '', 'kind' => 'error', 'detail' => 'خطا در خواندن فایل: ' . $e->getMessage()];
         }
 
-        $out['text'] = mb_substr(trim((string) $out['text']), 0, self::MAX_CHARS);
+        $out['text'] = mb_substr(self::normalize((string) $out['text']), 0, self::MAX_CHARS);
         return $out;
     }
 

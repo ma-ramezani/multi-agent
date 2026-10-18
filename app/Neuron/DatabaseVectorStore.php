@@ -133,15 +133,23 @@ class DatabaseVectorStore implements VectorStoreInterface
         $scored = [];
         foreach ($chunks as $chunk) {
             $text = mb_strtolower($chunk->content);
-            $score = 0;
+            $raw = 0;
+            $distinct = 0;
             foreach ($terms as $t) {
-                $score += substr_count($text, $t);
+                $c = substr_count($text, $t);
+                if ($c > 0) {
+                    $raw += $c;
+                    $distinct++;
+                }
             }
             // small boost for exact phrase
             if (mb_stripos($chunk->content, $query) !== false) {
-                $score += 5;
+                $raw += 5;
+                $distinct++;
             }
-            if ($score > 0) {
+            if ($raw > 0) {
+                // density: prefer concentrated matches over long repetitive chunks
+                $score = ($raw + $distinct * 3) / (1 + mb_strlen($chunk->content) / 400);
                 $scored[] = [$score, $chunk];
             }
         }
@@ -149,7 +157,7 @@ class DatabaseVectorStore implements VectorStoreInterface
 
         $results = [];
         foreach (array_slice($scored, 0, $topK) as [$score, $chunk]) {
-            $norm = $score > 0 ? min(0.99, $score / (mb_strlen($query) + 10)) : 0;
+            $norm = $score > 0 ? min(0.99, $score / 8) : 0;
             $doc = new Document($chunk->content);
             $doc->setSourceType($chunk->source_type ?? 'file');
             $doc->setSourceName($chunk->source_name ?? ('chunk#' . $chunk->id));
