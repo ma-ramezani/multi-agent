@@ -13,6 +13,8 @@ Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 Route::resource('agents', AgentController::class)->except(['show']);
 Route::resource('rags', RagEnvironmentController::class)->parameters(['rags' => 'rag']);
 Route::post('rags/{rag}/upload', [RagEnvironmentController::class, 'upload'])->name('rags.upload');
+Route::get('rags/{rag}/docs/{document}/edit', [RagEnvironmentController::class, 'editDoc'])->name('rags.docs.edit');
+Route::put('rags/{rag}/docs/{document}', [RagEnvironmentController::class, 'updateDoc'])->name('rags.docs.update');
 Route::post('rags/{rag}/docs/{document}/reindex', [RagEnvironmentController::class, 'reindex'])->name('rags.reindex');
 Route::delete('rags/{rag}/docs/{document}', [RagEnvironmentController::class, 'deleteDoc'])->name('rags.docs.destroy');
 

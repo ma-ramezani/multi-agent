@@ -61,9 +61,13 @@
 {{-- Pending attachments --}}
 @if(!empty($session->meta['pending_attachments']))
   <div class="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs">
-    <b>📎 آماده ارسال:</b>
+    <b>📎 آماده ارسال ({{ fa_num(count($session->meta['pending_attachments'])) }}):</b>
     @foreach($session->meta['pending_attachments'] as $p)
-      <span class="rounded-lg bg-white px-2 py-1 ring-1 ring-amber-200">{{ $p['name'] ?? '' }} <span class="text-slate-400">({{ fa_bytes($p['size'] ?? 0) }})</span></span>
+      <span class="rounded-lg bg-white px-2 py-1 ring-1 ring-amber-200" title="{{ $p['detail'] ?? '' }}">
+        {{ $p['name'] ?? '' }} <span class="text-slate-400">({{ fa_bytes($p['size'] ?? 0) }})</span>
+        @if(!empty($p['readable']))<span class="text-emerald-600">✓ {{ fa_num($p['chars'] ?? 0) }} حرف</span>
+        @else<span class="text-red-500">⚠ {{ $p['detail'] ?? 'ناخوانا' }}</span>@endif
+      </span>
     @endforeach
   </div>
 @endif
@@ -73,9 +77,9 @@
   <div class="flex items-end gap-2">
     <form method="POST" action="{{ route('chats.upload',$session) }}" enctype="multipart/form-data" id="upForm">
       @csrf
-      <label class="btn btn-ghost !px-3" title="پیوست فایل">📎<input type="file" name="file" class="hidden" onchange="document.getElementById('upForm').submit()"></label>
+      <label class="btn btn-ghost !px-3" title="پیوست فایل (Word/Excel/PowerPoint/PDF/عکس/متن)">📎<input type="file" name="files[]" id="fileInp" multiple accept=".txt,.md,.markdown,.csv,.json,.log,.xml,.html,.htm,.pdf,.docx,.xlsx,.xls,.pptx,.png,.jpg,.jpeg,.webp,.gif,.bmp" class="hidden" onchange="document.getElementById('upForm').submit()"></label>
     </form>
-    <textarea id="inp" rows="1" placeholder="پیام خود را بنویسید… (Enter = ارسال ⚡ · Shift+Enter = خط جدید)" class="inp max-h-40 flex-1 resize-none !py-2.5"></textarea>
+    <textarea id="inp" rows="1" placeholder="پیام خود را بنویسید… فایل را هم می‌توانید روی همین کادر رها کنید (Enter = ارسال ⚡ · Shift+Enter = خط جدید)" class="inp max-h-40 flex-1 resize-none !py-2.5"></textarea>
     <button id="sendBtn" onclick="sendStream()" class="btn btn-primary">ارسال ⚡</button>
   </div>
   <div class="mt-1.5 flex items-center justify-between text-[11px] text-slate-400">
@@ -117,6 +121,17 @@ inp.addEventListener('input', ()=>{
   document.getElementById('charCount').textContent = Number(inp.value.length).toLocaleString('fa-IR');
 });
 inp.addEventListener('keydown', e=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendStream(); } });
+/* drag & drop files onto the textarea */
+['dragover','dragenter'].forEach(e=>inp.addEventListener(e,ev=>{ev.preventDefault();inp.classList.add('!border-blue-500');}));
+['dragleave','drop'].forEach(e=>inp.addEventListener(e,ev=>{ev.preventDefault();inp.classList.remove('!border-blue-500');}));
+inp.addEventListener('drop', ev=>{
+  if(ev.dataTransfer.files.length){
+    const dt = new DataTransfer();
+    [...ev.dataTransfer.files].forEach(f=>dt.items.add(f));
+    document.getElementById('fileInp').files = dt.files;
+    document.getElementById('upForm').submit();
+  }
+});
 
 function addUser(text){
   const d=document.createElement('div');

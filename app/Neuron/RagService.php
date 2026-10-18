@@ -45,33 +45,12 @@ class RagService
 
     public static function extractText(string $path, ?string $mime = null): string
     {
-        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
-        if (in_array($ext, ['txt', 'md', 'markdown', 'csv', 'json', 'log', 'html', 'htm', 'xml'])) {
-            $t = @file_get_contents($path);
-            if ($ext === 'html' || $ext === 'htm') {
-                $t = strip_tags($t);
-            }
-            return (string) $t;
+        $abs = $path;
+        if (!str_starts_with($abs, '/') && !preg_match('#^[A-Za-z]:\\\\#', $abs)) {
+            $abs = \Storage::disk('local')->path($path);
         }
-        if ($ext === 'pdf' && class_exists(\Smalot\PdfParser\Parser::class)) {
-            try {
-                $parser = new \Smalot\PdfParser\Parser();
-                $pdf = $parser->parseFile($path);
-                return $pdf->getText();
-            } catch (\Throwable $e) {
-                return '';
-            }
-        }
-        // Fallback: try raw read (works for plain text)
-        $raw = @file_get_contents($path);
-        if ($raw !== false && mb_check_encoding($raw, 'UTF-8')) {
-            // strip binary garbage heuristic
-            if (substr_count($raw, "\0") > 0) {
-                return '';
-            }
-            return $raw;
-        }
-        return '';
+        $r = DocumentReader::read($abs, $mime, basename($path));
+        return $r['text'];
     }
 
     public static function ingestDocument(RagDocument $doc): void
@@ -83,16 +62,25 @@ class RagService
         }
         $doc->update(['status' => 'processing', 'error' => null]);
         try {
+            $readKind = 'manual';
+            $readDetail = '';
             if ($doc->raw_text) {
                 $text = $doc->raw_text;
             } elseif ($doc->stored_path && \Storage::disk('local')->exists($doc->stored_path)) {
-                $text = self::extractText(\Storage::disk('local')->path($doc->stored_path), $doc->mime);
+                $abs = \Storage::disk('local')->path($doc->stored_path);
+                $r = DocumentReader::read($abs, $doc->mime, $doc->original_name);
+                $text = $r['text'];
+                $readKind = $r['kind'];
+                $readDetail = $r['detail'];
+                if (trim($text) === '') {
+                    throw new \RuntimeException($r['detail'] ?: 'از فایل متنی استخراج نشد');
+                }
             } else {
                 throw new \RuntimeException('فایل یافت نشد');
             }
 
             if (trim($text) === '') {
-                throw new \RuntimeException('متن قابل استخرجی از فایل به دست نیامد (فعلاً txt/md/csv/json پشتیبانی می‌شود)');
+                throw new \RuntimeException('متن قابل استخرجی از فایل به دست نیامد');
             }
 
             $parts = self::chunkText($text, $env->chunk_size ?: 1000, $env->chunk_overlap ?: 100);
@@ -122,7 +110,10 @@ class RagService
                     'rag_document_id' => $doc->id,
                     'content' => $part,
                     'embedding' => !empty($embeddings[$i]) ? json_encode($embeddings[$i]) : null,
-                    'metadata' => ['chunk_index' => $i],
+                    'metadata' => array_merge(['chunk_index' => $i], array_filter([
+                        'read_kind' => $readKind ?? null,
+                        'read_detail' => $readDetail ?? null,
+                    ])),
                     'source_type' => 'file',
                     'source_name' => $doc->original_name,
                 ]);

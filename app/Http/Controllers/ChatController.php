@@ -145,20 +145,60 @@ class ChatController extends Controller
 
     public function upload(Request $request, ChatSession $session)
     {
-        $request->validate(['file' => 'required|file|max:20480']);
-        $file = $request->file('file');
-        $path = $file->store('chat-uploads/' . $session->id, 'local');
+        $request->validate([
+            'files' => 'nullable|array',
+            'files.*' => 'file|max:51200',
+            'file' => 'nullable|file|max:51200',
+        ]);
+        $files = [];
+        if ($request->hasFile('files')) {
+            $files = $request->file('files');
+        } elseif ($request->hasFile('file')) {
+            $files = [$request->file('file')];
+        }
+        if (empty($files)) {
+            return back()->withErrors(['file' => 'فایلی انتخاب نشد']);
+        }
         $meta = $session->meta ?? [];
         $pending = $meta['pending_attachments'] ?? [];
-        $pending[] = [
-            'name' => $file->getClientOriginalName(),
-            'path' => $path,
-            'mime' => $file->getMimeType(),
-            'size' => $file->getSize(),
-        ];
+        $added = 0;
+        $rejected = [];
+        foreach ($files as $file) {
+            $name = $file->getClientOriginalName();
+            if (!\App\Neuron\DocumentReader::isSupported($name)) {
+                $rejected[] = $name;
+                continue;
+            }
+            $path = $file->store('chat-uploads/' . $session->id, 'local');
+            // pre-read: extraction status shown to the user right away
+            // NOTE: local disk root is storage/app/private (Laravel 12), so always
+            // resolve via the disk, never storage_path('app/...').
+            $r = \App\Neuron\DocumentReader::read(
+                \Storage::disk('local')->path($path),
+                $file->getMimeType(),
+                $name
+            );
+            $pending[] = [
+                'name' => $name,
+                'path' => $path,
+                'mime' => $file->getMimeType(),
+                'size' => $file->getSize(),
+                'readable' => trim($r['text']) !== '',
+                'chars' => mb_strlen(trim($r['text'])),
+                'detail' => $r['kind'] === 'text' || $r['kind'] === 'table' || $r['kind'] === 'slides' || $r['kind'] === 'ocr'
+                    ? ($r['detail'] ?: 'متن استخراج شد')
+                    : ($r['detail'] ?: 'قابل خواندن نیست'),
+            ];
+            $added++;
+        }
         $meta['pending_attachments'] = $pending;
         $session->update(['meta' => $meta]);
-        return back()->with('ok', 'فایل پیوست شد: ' . $file->getClientOriginalName());
+
+        $msg = $added > 0 ? fa_num($added) . ' فایل پیوست شد' : 'فایلی پیوست نشد';
+        if ($rejected) {
+            return back()->withErrors(['file' => 'فرمت پشتیبانی نمی‌شود: ' . implode('، ', $rejected)]);
+        }
+        return back()->with('ok', $msg . ' — حالا پیامتان را بفرستید');
     }
 
     protected function buildAttachmentContext(ChatSession $session): string
@@ -168,18 +208,29 @@ class ChatController extends Controller
             return '';
         }
         $parts = [];
+        $total = 0;
+        $disk = \Storage::disk('local');
+        $diskRoot = (string) realpath($disk->path(''));
         foreach ($pending as $att) {
-            $abs = storage_path('app/' . ($att['path'] ?? ''));
-            $text = '';
-            if ($abs && is_file($abs)) {
-                $ext = strtolower(pathinfo($att['name'] ?? '', PATHINFO_EXTENSION));
-                if (in_array($ext, ['txt', 'md', 'csv', 'json', 'log'])) {
-                    $text = mb_substr((string) @file_get_contents($abs), 0, 15000);
-                } else {
-                    $text = '[فایل باینری: ' . ($att['name'] ?? '') . ' - قابل استخراج متنی نیست، فقط نام فایل را در نظر بگیر]';
-                }
+            if ($total > 30000) {
+                break;
             }
-            $parts[] = '--- فایل: ' . ($att['name'] ?? '') . " ---\n" . $text;
+            // resolve via the disk (root = storage/app/private on Laravel 12)
+            $abs = $disk->path(ltrim($att['path'] ?? '', '/'));
+            $name = $att['name'] ?? 'فایل';
+            $real = is_file($abs) ? realpath($abs) : false;
+            if ($real === false || !str_starts_with($real, $diskRoot)) {
+                $parts[] = "--- فایل: {$name} ---\n[فایل یافت نشد]";
+                continue;
+            }
+            $r = \App\Neuron\DocumentReader::read($abs, $att['mime'] ?? null, $name);
+            $text = mb_substr(trim($r['text']), 0, 12000);
+            if ($text === '') {
+                $parts[] = "--- فایل: {$name} ---\n[متن قابل استخراج نیست: {$r['detail']}]";
+            } else {
+                $total += mb_strlen($text);
+                $parts[] = "--- فایل: {$name} ({$r['detail']}) ---\n" . $text;
+            }
         }
         return implode("\n\n", $parts);
     }

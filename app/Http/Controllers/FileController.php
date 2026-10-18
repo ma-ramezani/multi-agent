@@ -14,9 +14,11 @@ class FileController extends Controller
         if (!isset($atts[$index])) {
             abort(404, 'فایل یافت نشد');
         }
-        $abs = storage_path('app/' . ltrim($atts[$index]['path'] ?? '', '/'));
+        $disk = \Storage::disk('local');
+        $abs = $disk->path(ltrim($atts[$index]['path'] ?? '', '/'));
         $real = realpath($abs);
-        if (!$real || !is_file($real) || !str_starts_with($real, (string) realpath(storage_path('app')))) {
+        $root = (string) realpath($disk->path(''));
+        if (!$real || !is_file($real) || !str_starts_with($real, $root)) {
             abort(404, 'فایل یافت نشد');
         }
         return response()->download($real, $atts[$index]['name'] ?? basename($real));

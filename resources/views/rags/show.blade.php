@@ -27,8 +27,8 @@
     <label id="drop" class="block cursor-pointer rounded-xl border-2 border-dashed border-slate-300 bg-slate-50/60 p-6 text-center transition hover:border-blue-400 hover:bg-blue-50/50">
       <div class="text-3xl">📁</div>
       <div class="mt-1 text-sm font-semibold">فایل‌ها را اینجا رها کنید یا کلیک کنید</div>
-      <div class="mt-0.5 text-xs text-slate-500">txt · md · csv · json · html (حداکثر {{ fa_num('۲۰') }} مگابایت هر فایل)</div>
-      <input type="file" name="files[]" id="fileInp" multiple class="hidden">
+      <div class="mt-0.5 text-xs text-slate-500">Word (docx) · Excel (xlsx/xls) · PowerPoint (pptx) · PDF · عکس (OCR فارسی) · txt/md/csv/html — تا {{ fa_num('۵۰') }} مگابایت</div>
+      <input type="file" name="files[]" id="fileInp" multiple accept=".txt,.md,.markdown,.csv,.json,.log,.xml,.html,.htm,.pdf,.docx,.xlsx,.xls,.pptx,.png,.jpg,.jpeg,.webp,.gif,.bmp" class="hidden">
       <div id="fileList" class="mt-2 space-y-1 text-xs text-slate-600"></div>
     </label>
     <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -59,6 +59,8 @@
         <td class="font-mono">{{ fa_num($d->chunks_count) }}</td>
         <td class="whitespace-nowrap text-xs text-slate-500">{{ fa_date($d->created_at) }}</td>
         <td class="whitespace-nowrap text-left">
+          <a href="{{ route('rags.docs.edit',[$env,$d]) }}" class="btn btn-ghost !px-2 !py-1 !text-[11px]" title="ویرایش متن و مشخصات">✏️</a>
+          @if($d->stored_path || $d->raw_text)<a href="{{ route('files.rag',$d) }}" class="btn btn-ghost !px-2 !py-1 !text-[11px]" title="دانلود">⬇️</a>@endif
           <form method="POST" action="{{ route('rags.reindex',[$env,$d]) }}" class="inline">@csrf<button class="btn btn-ghost !px-2 !py-1 !text-[11px]" title="ایندکس مجدد">🔄</button></form>
           <form method="POST" action="{{ route('rags.docs.destroy',[$env,$d]) }}" class="inline" onsubmit="return confirm('حذف شود؟')">@csrf @method('DELETE')<button class="btn btn-danger-ghost !px-2 !py-1 !text-[11px]" title="حذف">🗑</button></form>
         </td>

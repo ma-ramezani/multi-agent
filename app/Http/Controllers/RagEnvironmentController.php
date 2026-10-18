@@ -61,10 +61,18 @@ class RagEnvironmentController extends Controller
     public function upload(Request $request, RagEnvironment $rag)
     {
         $request->validate([
-            'files.*' => 'required|file|max:20480',
-            'raw_text' => 'nullable|string|max:200000',
+            'files.*' => 'required|file|max:51200',
+            'raw_text' => 'nullable|string|max:500000',
             'raw_name' => 'nullable|string|max:255',
         ]);
+
+        if ($request->hasFile('files')) {
+            foreach ($request->file('files') as $file) {
+                if (!\App\Neuron\DocumentReader::isSupported($file->getClientOriginalName())) {
+                    return back()->withErrors(['files' => 'فرمت پشتیبانی نمی‌شود: ' . $file->getClientOriginalName() . ' — فرمت‌های مجاز: txt, md, csv, json, html, pdf, docx, xlsx, xls, pptx, png, jpg, webp']);
+                }
+            }
+        }
 
         if ($request->filled('raw_text')) {
             $doc = RagDocument::create([
@@ -104,9 +112,67 @@ class RagEnvironmentController extends Controller
 
     public function deleteDoc(RagEnvironment $rag, RagDocument $document)
     {
+        if ($document->rag_environment_id !== $rag->id) {
+            abort(404);
+        }
+        if ($document->stored_path) {
+            \Storage::disk('local')->delete($document->stored_path);
+        }
         $document->chunks()->delete();
         $document->delete();
         return back()->with('ok', 'سند حذف شد');
+    }
+
+    public function editDoc(RagEnvironment $rag, RagDocument $document)
+    {
+        if ($document->rag_environment_id !== $rag->id) {
+            abort(404);
+        }
+        $extracted = $document->raw_text
+            ?: $document->chunks()->orderBy('id')->pluck('content')->implode("\n\n");
+        $readKind = $document->chunks()->orderBy('id')->first()?->metadata['read_kind'] ?? null;
+        return view('rags.doc-form', ['env' => $rag, 'doc' => $document, 'extracted' => mb_substr($extracted, 0, 200000), 'readKind' => $readKind]);
+    }
+
+    public function updateDoc(Request $request, RagEnvironment $rag, RagDocument $document)
+    {
+        if ($document->rag_environment_id !== $rag->id) {
+            abort(404);
+        }
+        $data = $request->validate([
+            'original_name' => 'required|string|max:255',
+            'content' => 'nullable|string|max:1000000',
+            'replace_file' => 'nullable|file|max:51200',
+        ]);
+
+        if ($request->hasFile('replace_file')) {
+            $file = $request->file('replace_file');
+            if (!\App\Neuron\DocumentReader::isSupported($file->getClientOriginalName())) {
+                return back()->withErrors(['replace_file' => 'فرمت پشتیبانی نمی‌شود: ' . $file->getClientOriginalName()]);
+            }
+            if ($document->stored_path) {
+                \Storage::disk('local')->delete($document->stored_path);
+            }
+            $document->stored_path = $file->store('rag-uploads/' . $rag->id, 'local');
+            $document->mime = $file->getMimeType();
+            $document->size = $file->getSize();
+            $document->raw_text = null; // re-read from the new file
+            if (empty($data['original_name']) || $data['original_name'] === $document->original_name) {
+                $document->original_name = $file->getClientOriginalName();
+            }
+        } else {
+            $document->original_name = $data['original_name'];
+            // edited text becomes the source of truth
+            $document->raw_text = $data['content'] ?? '';
+        }
+        $document->save();
+
+        RagService::ingestDocument($document->fresh());
+        $document->refresh();
+        if ($document->status === 'failed') {
+            return redirect()->route('rags.show', $rag)->withErrors(['doc' => 'ذخیره شد ولی ایندکس خطا داد: ' . $document->error]);
+        }
+        return redirect()->route('rags.show', $rag)->with('ok', 'سند ویرایش و دوباره ایندکس شد (' . fa_num($document->chunks_count) . ' چانک)');
     }
 
     protected function validated(Request $request, ?int $ignoreId = null): array
