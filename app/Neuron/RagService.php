@@ -10,6 +10,32 @@ use NeuronAI\RAG\Document;
 
 class RagService
 {
+    /** Files that may take minutes (OCR/embeddings) go to the queue worker. */
+    public static function needsBackground(RagDocument $doc): bool
+    {
+        if ($doc->force_ocr) {
+            return true;
+        }
+        if ($doc->raw_text) {
+            return mb_strlen($doc->raw_text) > 200000;
+        }
+        $ext = strtolower(pathinfo($doc->original_name ?? '', PATHINFO_EXTENSION));
+        if ($ext === 'pdf') {
+            return true; // may require per-page OCR
+        }
+        return ((int) ($doc->size ?? 0)) > 3 * 1024 * 1024;
+    }
+
+    /** Ingest now for light files, or dispatch to the queue for heavy ones. */
+    public static function ingestSoon(RagDocument $doc): void
+    {
+        if (self::needsBackground($doc)) {
+            $doc->update(['status' => 'processing', 'error' => null]);
+            \App\Jobs\IngestRagDocument::dispatch($doc->id);
+        } else {
+            self::ingestDocument($doc);
+        }
+    }
     public static function chunkText(string $text, int $size = 1000, int $overlap = 100): array
     {
         $text = trim(preg_replace('/\s+/u', ' ', $text));
@@ -64,11 +90,11 @@ class RagService
         try {
             $readKind = 'manual';
             $readDetail = '';
-            if ($doc->raw_text) {
+            if ($doc->raw_text && !$doc->force_ocr) {
                 $text = $doc->raw_text;
             } elseif ($doc->stored_path && \Storage::disk('local')->exists($doc->stored_path)) {
                 $abs = \Storage::disk('local')->path($doc->stored_path);
-                $r = DocumentReader::read($abs, $doc->mime, $doc->original_name);
+                $r = DocumentReader::read($abs, $doc->mime, $doc->original_name, (bool) $doc->force_ocr);
                 $text = $r['text'];
                 $readKind = $r['kind'];
                 $readDetail = $r['detail'];

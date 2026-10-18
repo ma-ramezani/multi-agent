@@ -23,12 +23,19 @@ class DocumentReader
     /**
      * @return array{text: string, kind: string, detail: string}
      */
-    public static function read(string $absPath, ?string $mime = null, ?string $filename = null): array
+    public static function read(string $absPath, ?string $mime = null, ?string $filename = null, bool $forceOcr = false): array
     {
         $ext = strtolower(pathinfo($filename ?? $absPath, PATHINFO_EXTENSION));
 
         if (!is_file($absPath)) {
             return ['text' => '', 'kind' => 'missing', 'detail' => 'فایل یافت نشد'];
+        }
+
+        // Force OCR for PDFs whose embedded text is garbled (e.g. reversed RTL).
+        if ($forceOcr && $ext === 'pdf') {
+            $out = self::pdfOcrText($absPath, null);
+            $out['text'] = mb_substr(trim((string) $out['text']), 0, self::MAX_CHARS);
+            return $out;
         }
 
         try {
@@ -96,19 +103,95 @@ class DocumentReader
             return self::unsupported('کتابخانه PDF نصب نیست');
         }
         $parser = new \Smalot\PdfParser\Parser();
-        $pdf = $parser->parseFile($path);
+        try {
+            $pdf = $parser->parseFile($path);
+        } catch (\Throwable $e) {
+            return self::pdfOcrText($path, null);
+        }
         $pages = [];
         foreach ($pdf->getPages() as $i => $page) {
-            $t = trim($page->getText());
+            try {
+                $t = trim($page->getText());
+            } catch (\Throwable) {
+                $t = '';
+            }
             if ($t !== '') {
                 $pages[] = "— صفحه " . ($i + 1) . " —\n" . $t;
             }
         }
         $text = implode("\n\n", $pages);
-        if ($text === '') {
-            return ['text' => '', 'kind' => 'empty', 'detail' => 'از PDF متنی استخراج نشد (ممکن است اسکن‌شده باشد؛ نسخه OCR آن را بارگذاری کنید)'];
+        if ($text !== '') {
+            return ['text' => $text, 'kind' => 'text', 'detail' => count($pages) . ' صفحه'];
         }
-        return ['text' => $text, 'kind' => 'text', 'detail' => count($pages) . ' صفحه'];
+        // No embedded text → scanned/image PDF → OCR fallback
+        try {
+            $count = count($pdf->getPages());
+        } catch (\Throwable) {
+            $count = null;
+        }
+        return self::pdfOcrText($path, $count);
+    }
+
+    /**
+     * OCR a scanned PDF page-by-page: pdftoppm renders, tesseract reads.
+     * Slow (seconds per page) — callers should run this in a queue job.
+     */
+    protected static function pdfOcrText(string $path, ?int $pageCount): array
+    {
+        $pdftoppm = trim((string) @shell_exec('which pdftoppm 2>/dev/null'));
+        $tess = trim((string) @shell_exec('which tesseract 2>/dev/null'));
+        if ($pdftoppm === '' || $tess === '') {
+            return ['text' => '', 'kind' => 'empty', 'detail' => 'PDF اسکن‌شده است و ابزار OCR (poppler) روی سرور نیست'];
+        }
+        if ($pageCount === null) {
+            $info = @shell_exec(escapeshellarg(trim((string) @shell_exec('which pdfinfo 2>/dev/null'))) . ' ' . escapeshellarg($path) . ' 2>/dev/null');
+            $pageCount = $info && preg_match('/Pages:\s+(\d+)/', $info, $m) ? (int) $m[1] : 200;
+        }
+        $pageCount = max(1, min($pageCount, 500));
+
+        $dir = sys_get_temp_dir() . '/pdfocr_' . bin2hex(random_bytes(6));
+        @mkdir($dir, 0700, true);
+        $out = [];
+        try {
+            for ($p = 1; $p <= $pageCount; $p++) {
+                set_time_limit(60);
+                @exec(
+                    escapeshellarg($pdftoppm) . ' -png -r 300 -f ' . $p . ' -l ' . $p . ' -singlefile '
+                    . escapeshellarg($path) . ' ' . escapeshellarg($dir . '/pg') . ' 2>/dev/null',
+                    $o, $code
+                );
+                $img = $dir . '/pg.png';
+                if (!is_file($img)) {
+                    continue;
+                }
+                // `timeout` guards against tesseract hanging on a pathological page;
+                // exit 124 = skipped page, we simply continue with the next one.
+                $hasTimeout = trim((string) @shell_exec('which timeout 2>/dev/null')) !== '';
+                $tessCmd = escapeshellarg($tess) . ' ' . escapeshellarg($img) . ' ' . escapeshellarg($dir . '/t')
+                    . ' -l fas+eng --psm 6 2>/dev/null';
+                if ($hasTimeout) {
+                    $tessCmd = 'timeout 180 ' . $tessCmd;
+                }
+                @exec($tessCmd, $o2, $code2);
+                @unlink($img);
+                $txt = is_file($dir . '/t.txt') ? trim((string) @file_get_contents($dir . '/t.txt')) : '';
+                @unlink($dir . '/t.txt');
+                if ($txt !== '') {
+                    $out[] = "— صفحه {$p} (OCR) —\n" . $txt;
+                }
+            }
+        } finally {
+            foreach (glob($dir . '/*') ?: [] as $f) {
+                @unlink($f);
+            }
+            @rmdir($dir);
+        }
+
+        $text = implode("\n\n", $out);
+        if ($text === '') {
+            return ['text' => '', 'kind' => 'empty', 'detail' => 'OCR هم متنی از PDF پیدا نکرد'];
+        }
+        return ['text' => $text, 'kind' => 'ocr', 'detail' => count($out) . ' صفحه OCR شد'];
     }
 
     protected static function docxText(string $path): array

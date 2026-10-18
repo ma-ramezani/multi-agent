@@ -53,8 +53,8 @@
       <tr>
         <td><div class="font-semibold">{{ $d->original_name }}</div><div class="text-[11px] text-slate-400">{{ $d->mime }} · {{ fa_bytes($d->size) }}</div>
           @if($d->error)<div class="mt-1 max-w-md truncate text-[11px] text-red-500" title="{{ $d->error }}">⚠️ {{ $d->error }}</div>@endif</td>
-        <td>@if($d->status=='ready')<span class="pill bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200">✅ آماده</span>
-          @elseif($d->status=='processing')<span class="pill bg-amber-50 text-amber-700 ring-1 ring-amber-200">⏳ در حال پردازش</span>
+        <td>          @if($d->status=='ready')<span class="pill bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200">✅ آماده</span>
+          @elseif($d->status=='processing')<span class="pill bg-amber-50 text-amber-700 ring-1 ring-amber-200" data-processing="1">⏳ در حال پردازش…</span>
           @else<span class="pill bg-red-50 text-red-700 ring-1 ring-red-200">❌ {{ $d->status }}</span>@endif</td>
         <td class="font-mono">{{ fa_num($d->chunks_count) }}</td>
         <td class="whitespace-nowrap text-xs text-slate-500">{{ fa_date($d->created_at) }}</td>
@@ -110,6 +110,14 @@ q.addEventListener('input',()=>{
     d.style.display = !t || d.textContent.includes(t) ? '' : 'none';
   });
 });
+// auto-refresh while background OCR/ingest is running
+if(document.querySelector('[data-processing]')){
+  const note=document.createElement('div');
+  note.className='mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800';
+  note.textContent='⏳ پردازش پس‌زمینه در جریان است (OCR اسکن چند دقیقه طول می‌کشد) — این صفحه خودکار رفرش می‌شود…';
+  document.querySelector('.card.mt-4.overflow-hidden').prepend(note);
+  setTimeout(()=>location.reload(), 15000);
+}
 </script>
 @endpush
 @endsection

@@ -83,7 +83,7 @@ class RagEnvironmentController extends Controller
                 'status' => 'pending',
                 'raw_text' => $request->input('raw_text'),
             ]);
-            RagService::ingestDocument($doc);
+            RagService::ingestSoon($doc);
         }
 
         if ($request->hasFile('files')) {
@@ -97,17 +97,19 @@ class RagEnvironmentController extends Controller
                     'size' => $file->getSize(),
                     'status' => 'pending',
                 ]);
-                RagService::ingestDocument($doc);
+                RagService::ingestSoon($doc);
             }
         }
 
-        return redirect()->route('rags.show', $rag)->with('ok', 'اسناد اضافه و ایندکس شدند');
+        return redirect()->route('rags.show', $rag)->with('ok', 'اسناد ثبت شدند — سبک‌ها فوری ایندکس می‌شوند، PDF و فایل‌های سنگین در پس‌زمینه پردازش می‌شوند');
     }
 
     public function reindex(RagEnvironment $rag, RagDocument $document)
     {
-        RagService::ingestDocument($document);
-        return back()->with('ok', 'سند دوباره ایندکس شد');
+        RagService::ingestSoon($document->fresh());
+        return back()->with('ok', $document->fresh()->status === 'processing'
+            ? 'سند در صف پردازش پس‌زمینه قرار گرفت — چند دقیقه بعد رفرش کنید'
+            : 'سند دوباره ایندکس شد');
     }
 
     public function deleteDoc(RagEnvironment $rag, RagDocument $document)
@@ -143,6 +145,7 @@ class RagEnvironmentController extends Controller
             'original_name' => 'required|string|max:255',
             'content' => 'nullable|string|max:1000000',
             'replace_file' => 'nullable|file|max:51200',
+            'force_ocr' => 'nullable|boolean',
         ]);
 
         if ($request->hasFile('replace_file')) {
@@ -165,12 +168,16 @@ class RagEnvironmentController extends Controller
             // edited text becomes the source of truth
             $document->raw_text = $data['content'] ?? '';
         }
+        $document->force_ocr = $request->boolean('force_ocr');
         $document->save();
 
-        RagService::ingestDocument($document->fresh());
+        RagService::ingestSoon($document->fresh());
         $document->refresh();
         if ($document->status === 'failed') {
             return redirect()->route('rags.show', $rag)->withErrors(['doc' => 'ذخیره شد ولی ایندکس خطا داد: ' . $document->error]);
+        }
+        if ($document->status === 'processing') {
+            return redirect()->route('rags.show', $rag)->with('ok', 'سند ذخیره شد و در صف پردازش پس‌زمینه قرار گرفت (PDF/فایل سنگین) — صفحه را رفرش کنید');
         }
         return redirect()->route('rags.show', $rag)->with('ok', 'سند ویرایش و دوباره ایندکس شد (' . fa_num($document->chunks_count) . ' چانک)');
     }

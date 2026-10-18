@@ -24,6 +24,10 @@
       <label class="lbl">جایگزینی فایل <span class="font-normal text-slate-400">— اختیاری</span></label>
       <input type="file" name="replace_file" class="inp">
       <p class="hint">pdf · docx · xlsx/xls · pptx · عکس (OCR فارسی) · txt/md/csv… — با انتخاب فایل جدید، متن دستی نادیده گرفته می‌شود.</p>
+      <label class="mt-2 flex cursor-pointer items-start gap-2 rounded-xl border border-violet-200 bg-violet-50 p-2.5 text-xs leading-5">
+        <input type="checkbox" name="force_ocr" value="1" {{ old('force_ocr', $doc->force_ocr ?? false) ? 'checked' : '' }} class="mt-0.5 accent-violet-600">
+        <span><b>استخراج با OCR</b> — اگر متن استخراج‌شده PDF به‌هم‌ریخته/معکوس است، تیک بزنید تا کل PDF صفحه‌به‌صفحه OCR شود (کندتر ولی تمیز؛ در پس‌زمینه انجام می‌شود).</span>
+      </label>
     </div>
   </div>
   <div class="mt-4">

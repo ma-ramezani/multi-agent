@@ -8,8 +8,10 @@ class RagDocument extends Model
 {
     protected $fillable = [
         'rag_environment_id', 'original_name', 'stored_path',
-        'mime', 'size', 'status', 'error', 'chunks_count', 'raw_text',
+        'mime', 'size', 'status', 'error', 'chunks_count', 'raw_text', 'force_ocr',
     ];
+
+    protected $casts = ['force_ocr' => 'boolean'];
 
     public function environment()
     {
