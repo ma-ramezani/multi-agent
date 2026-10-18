@@ -16,7 +16,7 @@ class EmbeddingFactory
         $key = $env->embedding_api_key ?: env('OPENAI_API_KEY', 'demo');
 
         return match ($env->embedding_provider) {
-            'ollama' => new OllamaEmbeddingsProvider(
+            'ollama' => new BatchedOllamaEmbeddings(
                 model: $env->embedding_model ?: 'nomic-embed-text',
                 url: $env->embedding_base_url ?: env('OLLAMA_URL', 'http://localhost:11434/api'),
             ),
