@@ -4,6 +4,7 @@ use App\Http\Controllers\AgentController;
 use App\Http\Controllers\ApiTokenController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FileController;
 use App\Http\Controllers\RagEnvironmentController;
 use Illuminate\Support\Facades\Route;
 
@@ -28,3 +29,6 @@ Route::post('tokens', [ApiTokenController::class, 'store'])->name('tokens.store'
 Route::delete('tokens/{token}', [ApiTokenController::class, 'destroy'])->name('tokens.destroy');
 
 Route::get('api-docs', fn () => view('api-docs'))->name('api.docs');
+
+Route::get('files/chat/{message}/{index}', [FileController::class, 'chatAttachment'])->name('files.chat')->whereNumber('index');
+Route::get('files/rag/{document}', [FileController::class, 'ragDocument'])->name('files.rag');

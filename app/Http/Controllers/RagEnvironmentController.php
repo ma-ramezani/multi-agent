@@ -31,8 +31,14 @@ class RagEnvironmentController extends Controller
 
     public function show(RagEnvironment $rag)
     {
-        $rag->load(['documents' => fn ($q) => $q->orderBy('id', 'desc'), 'chunks']);
-        return view('rags.show', ['env' => $rag]);
+        $rag->load(['documents' => fn ($q) => $q->orderBy('id', 'desc')]);
+        $stats = [
+            'docs' => $rag->documents()->count(),
+            'chunks' => $rag->chunks()->count(),
+            'embedded' => $rag->chunks()->whereNotNull('embedding')->count(),
+        ];
+        $chunks = $rag->chunks()->with('document')->orderBy('id', 'desc')->limit(30)->get();
+        return view('rags.show', ['env' => $rag, 'stats' => $stats, 'chunks' => $chunks]);
     }
 
     public function edit(RagEnvironment $rag)

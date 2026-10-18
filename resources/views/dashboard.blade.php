@@ -1,27 +1,67 @@
 @extends('layout')
 @section('title','داشبورد')
 @section('content')
-<h1 class="text-2xl font-bold mb-4">داشبورد</h1>
-<div class="grid grid-cols-3 gap-4 mb-6">
-  <div class="bg-white rounded shadow p-4"><div class="text-sm text-gray-500">ایجنت‌ها</div><div class="text-3xl font-bold">{{ $agents }}</div><a href="{{ route('agents.index') }}" class="text-blue-600 text-sm">مدیریت →</a></div>
-  <div class="bg-white rounded shadow p-4"><div class="text-sm text-gray-500">محیط‌های RAG</div><div class="text-3xl font-bold">{{ $envs }}</div><a href="{{ route('rags.index') }}" class="text-blue-600 text-sm">مدیریت →</a></div>
-  <div class="bg-white rounded shadow p-4"><div class="text-sm text-gray-500">گفتگوها</div><div class="text-3xl font-bold">{{ $sessions }}</div><a href="{{ route('chats.index') }}" class="text-blue-600 text-sm">چت زنده →</a></div>
-</div>
-<div class="bg-white rounded shadow p-4 mb-6">
-  <h2 class="font-bold mb-3">شروع گفتگوی سریع</h2>
-  <div class="flex flex-wrap gap-2">
-  @foreach($agentsList as $a)
-    <form method="POST" action="{{ route('chats.start', $a) }}">@csrf<button class="bg-blue-600 text-white px-4 py-2 rounded">💬 {{ $a->name }} ({{ $a->provider }}/{{ $a->model }})</button></form>
-  @endforeach
-  @if($agentsList->isEmpty())<p class="text-gray-500">هنوز ایجنتی نساخته‌اید. <a class="text-blue-600" href="{{ route('agents.create') }}">ساخت ایجنت</a></p>@endif
+<div class="mb-6 flex flex-wrap items-end justify-between gap-3">
+  <div>
+    <h1 class="text-2xl font-extrabold">داشبورد 👋</h1>
+    <p class="mt-1 text-sm text-slate-500">نمای کلی پلتفرم ایجنت‌ها · امروز {{ fa_date(now(), false) }}</p>
   </div>
+  <a href="{{ route('agents.create') }}" class="btn btn-primary">＋ ایجنت جدید</a>
 </div>
-<div class="bg-white rounded shadow p-4">
-  <h2 class="font-bold mb-3">گفتگوهای اخیر</h2>
-  <table class="w-full text-sm"><tr class="text-gray-500 border-b"><td class="py-2">عنوان</td><td>ایجنت</td><td>تاریخ</td><td></td></tr>
-  @foreach($recentSessions as $s)
-  <tr class="border-b"><td>{{ $s->title }}</td><td>{{ $s->agent->name ?? '-' }}</td><td>{{ $s->created_at }}</td><td><a class="text-blue-600" href="{{ route('chats.show',$s) }}">باز کردن</a></td></tr>
-  @endforeach
+
+<div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+  <a href="{{ route('agents.index') }}" class="card card-hover p-5">
+    <div class="flex items-center justify-between"><span class="text-3xl">🧠</span><span class="text-3xl font-extrabold">{{ fa_num($agents) }}</span></div>
+    <div class="mt-2 font-bold">ایجنت‌ها</div><div class="text-xs text-slate-500">مدیریت پرووایدر، ابزار و RAG ←</div>
+  </a>
+  <a href="{{ route('rags.index') }}" class="card card-hover p-5">
+    <div class="flex items-center justify-between"><span class="text-3xl">📚</span><span class="text-3xl font-extrabold">{{ fa_num($envs) }}</span></div>
+    <div class="mt-2 font-bold">محیط‌های دانش (RAG)</div><div class="text-xs text-slate-500">اسناد و چانک‌های ایندکس‌شده ←</div>
+  </a>
+  <a href="{{ route('chats.index') }}" class="card card-hover p-5">
+    <div class="flex items-center justify-between"><span class="text-3xl">💬</span><span class="text-3xl font-extrabold">{{ fa_num($sessions) }}</span></div>
+    <div class="mt-2 font-bold">گفتگوها</div><div class="text-xs text-slate-500">چت زنده با استریم ←</div>
+  </a>
+</div>
+
+<div class="card mt-6 p-5">
+  <h2 class="mb-3 font-bold">⚡ شروع گفتگوی سریع</h2>
+  @if($agentsList->isEmpty())
+    <p class="text-sm text-slate-500">هنوز ایجنتی نساخته‌اید. <a class="font-semibold text-blue-600" href="{{ route('agents.create') }}">اولین ایجنت را بسازید</a></p>
+  @else
+    <div class="flex flex-wrap gap-2">
+      @foreach($agentsList as $a)
+        <form method="POST" action="{{ route('chats.start', $a) }}">@csrf
+          <button class="btn btn-ghost !py-2">💬 {{ $a->name }}
+            <span class="pill ring-1 {{ provider_badge_class($a->provider) }}">{{ $a->provider }}</span>
+          </button>
+        </form>
+      @endforeach
+    </div>
+  @endif
+</div>
+
+<div class="card mt-6 overflow-hidden">
+  <div class="flex items-center justify-between border-b px-5 py-3">
+    <h2 class="font-bold">🕘 گفتگوهای اخیر</h2>
+    <a href="{{ route('chats.index') }}" class="text-xs font-semibold text-blue-600">همه ←</a>
+  </div>
+  @if($recentSessions->isEmpty())
+    <p class="px-5 py-6 text-sm text-slate-400">هنوز گفتگویی ثبت نشده است.</p>
+  @else
+  <table class="tbl w-full">
+    <thead><tr><th>عنوان</th><th>ایجنت</th><th>زمان</th><th></th></tr></thead>
+    <tbody>
+    @foreach($recentSessions as $s)
+      <tr>
+        <td class="font-semibold">{{ $s->title }}</td>
+        <td><span class="pill ring-1 {{ provider_badge_class($s->agent->provider ?? '') }}">{{ $s->agent->name ?? '—' }}</span></td>
+        <td class="whitespace-nowrap text-xs text-slate-500">{{ fa_date($s->created_at) }}</td>
+        <td class="text-left"><a href="{{ route('chats.show',$s) }}" class="btn btn-ghost !px-3 !py-1 !text-xs">باز کردن ←</a></td>
+      </tr>
+    @endforeach
+    </tbody>
   </table>
+  @endif
 </div>
 @endsection

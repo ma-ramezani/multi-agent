@@ -23,6 +23,7 @@ class AppServiceProvider extends ServiceProvider
         Route::model('rag', \App\Models\RagEnvironment::class);
         Route::model('document', \App\Models\RagDocument::class);
         Route::model('session', \App\Models\ChatSession::class);
+        Route::model('message', \App\Models\ChatMessage::class);
         Route::model('agent', \App\Models\Agent::class);
         Route::model('token', \App\Models\ApiToken::class);
     }

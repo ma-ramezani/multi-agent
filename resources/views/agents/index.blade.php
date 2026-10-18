@@ -1,27 +1,61 @@
 @extends('layout')
 @section('title','ایجنت‌ها')
 @section('content')
-<div class="flex justify-between items-center mb-4">
-<h1 class="text-2xl font-bold">ایجنت‌ها</h1>
-<a href="{{ route('agents.create') }}" class="bg-blue-600 text-white px-4 py-2 rounded">＋ ایجنت جدید</a>
+<div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+  <div>
+    <h1 class="text-2xl font-extrabold">🧠 ایجنت‌ها</h1>
+    <p class="mt-1 text-sm text-slate-500">{{ fa_num($agents->count()) }} ایجنت تعریف شده · هر ایجنت پرووایدر، ابزار و محیط‌های RAG خودش را دارد</p>
+  </div>
+  <a href="{{ route('agents.create') }}" class="btn btn-primary">＋ ایجنت جدید</a>
 </div>
-<div class="bg-white rounded shadow overflow-hidden">
-<table class="w-full text-sm">
-<tr class="bg-gray-100 text-gray-600"><td class="p-3">نام</td><td>پرووایدر / مدل</td><td>ابزارها</td><td>RAG</td><td>وضعیت</td><td></td></tr>
+
+@if($agents->isEmpty())
+  <div class="card p-10 text-center">
+    <div class="text-5xl">🧠</div>
+    <h2 class="mt-3 font-extrabold">هنوز ایجنتی نساخته‌اید</h2>
+    <p class="mt-1 text-sm text-slate-500">پرووایدر را انتخاب کنید، ابزارها را تیک بزنید و محیط RAG وصل کنید.</p>
+    <a href="{{ route('agents.create') }}" class="btn btn-primary mt-4">ساخت اولین ایجنت</a>
+  </div>
+@else
+<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 @foreach($agents as $a)
-<tr class="border-t">
-<td class="p-3 font-bold">{{ $a->name }}<div class="text-xs text-gray-500 font-normal">{{ $a->slug }} · {{ $a->chatSessions_count }} گفتگو</div><div class="text-xs text-gray-400">{{ $a->description }}</div></td>
-<td class="p-3" dir="ltr">{{ $a->provider }}<br>{{ $a->model }}</td>
-<td class="p-3">{{ implode('، ', array_map(fn($t)=>\App\Neuron\ToolRegistry::AVAILABLE[$t]['label']??$t, $a->resolvedTools())) ?: '—' }}</td>
-<td class="p-3">{{ count($a->resolvedRagIds()) }} محیط</td>
-<td class="p-3">{{ $a->is_active?'✅ فعال':'⏸ غیرفعال' }}</td>
-<td class="p-3 whitespace-nowrap">
-<form method="POST" action="{{ route('chats.start',$a) }}" class="inline">@csrf<button class="text-green-600">چت</button></form> |
-<a class="text-blue-600" href="{{ route('agents.edit',$a) }}">ویرایش</a> |
-<form method="POST" action="{{ route('agents.destroy',$a) }}" class="inline" onsubmit="return confirm('حذف شود؟')">@csrf @method('DELETE')<button class="text-red-600">حذف</button></form>
-</td>
-</tr>
+  <div class="card card-hover flex flex-col p-5">
+    <div class="flex items-start justify-between gap-2">
+      <div>
+        <h2 class="font-extrabold">{{ $a->name }}</h2>
+        <div class="mt-0.5 font-mono text-[11px] text-slate-400" dir="ltr">{{ $a->slug }}</div>
+      </div>
+      @if($a->is_active)
+        <span class="pill bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200">● فعال</span>
+      @else
+        <span class="pill bg-slate-100 text-slate-500 ring-1 ring-slate-200">○ غیرفعال</span>
+      @endif
+    </div>
+    @if($a->description)<p class="mt-2 text-xs leading-5 text-slate-500">{{ $a->description }}</p>@endif
+    <div class="mt-3 flex flex-wrap items-center gap-1.5">
+      <span class="pill ring-1 {{ provider_badge_class($a->provider) }}">{{ \App\Models\Agent::providers()[$a->provider] ?? $a->provider }}</span>
+      <code class="rounded bg-slate-100 px-2 py-0.5 font-mono text-[11px] text-slate-600" dir="ltr">{{ $a->model }}</code>
+      @if($a->temperature !== null)<span class="pill bg-slate-50 text-slate-500 ring-1 ring-slate-200" title="Temperature">🌡 {{ $a->temperature }}</span>@endif
+    </div>
+    <div class="mt-2 flex flex-wrap gap-1.5 text-[11px]">
+      <span class="font-semibold text-slate-500">🛠 {{ fa_num(count($a->resolvedTools())) }} ابزار:</span>
+      @forelse($a->resolvedTools() as $t)
+        <span class="rounded bg-sky-50 px-2 py-0.5 text-sky-700">{{ \App\Neuron\ToolRegistry::AVAILABLE[$t]['label'] ?? $t }}</span>
+      @empty
+        <span class="text-slate-400">—</span>
+      @endforelse
+    </div>
+    <div class="mt-1.5 flex flex-wrap gap-1.5 text-[11px]">
+      <span class="font-semibold text-slate-500">📚 {{ fa_num(count($a->resolvedRagIds())) }} محیط RAG</span>
+      <span class="text-slate-400">· 💬 {{ fa_num($a->chatSessions_count) }} گفتگو</span>
+    </div>
+    <div class="mt-4 flex flex-wrap gap-2 border-t pt-3">
+      <form method="POST" action="{{ route('chats.start',$a) }}">@csrf<button class="btn btn-green !py-1.5 !text-xs">💬 چت</button></form>
+      <a href="{{ route('agents.edit',$a) }}" class="btn btn-ghost !py-1.5 !text-xs">✏️ ویرایش</a>
+      <form method="POST" action="{{ route('agents.destroy',$a) }}" class="mr-auto" onsubmit="return confirm('ایجنت «{{ $a->name }}» و همه گفتگوهایش حذف شود؟')">@csrf @method('DELETE')<button class="btn btn-danger-ghost !py-1.5 !text-xs">🗑 حذف</button></form>
+    </div>
+  </div>
 @endforeach
-</table>
 </div>
+@endif
 @endsection

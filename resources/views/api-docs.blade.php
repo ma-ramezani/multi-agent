@@ -1,50 +1,48 @@
 @extends('layout')
 @section('title','مستندات API')
 @section('content')
-<h1 class="text-2xl font-bold mb-4">مستندات API ساده</h1>
-<div class="bg-white rounded shadow p-6 space-y-4 text-sm" dir="ltr" style="text-align:left">
-<p dir="rtl" class="text-right">نرم‌افزارهای دیگر با توکن (ساخته‌شده در بخش توکن‌ها) می‌توانند به ایجنت‌ها وصل شوند:</p>
+<div class="mb-5">
+  <h1 class="text-2xl font-extrabold">📖 مستندات API</h1>
+  <p class="mt-1 text-sm text-slate-500">اتصال نرم‌افزارهای دیگر به ایجنت‌ها با توکن Bearer</p>
+</div>
 
-<h3 class="font-bold">1) لیست ایجنت‌ها</h3>
-<pre class="bg-gray-900 text-green-300 rounded p-3">GET /api/v1/agents
-Authorization: Bearer YOUR_TOKEN</pre>
+<div class="grid grid-cols-1 gap-4">
+@php
+$steps = [
+  ['t'=>'۱ · لیست ایجنت‌ها','req'=>"GET /api/v1/agents\nAuthorization: Bearer TOKEN",'res'=>'[{"id":1,"name":"پشتیبانی","slug":"support",...}]'],
+  ['t'=>'۲ · چت (thread_id اختیاری برای ادامه گفتگو)','req'=>"POST /api/v1/agents/{slug}/chat\nAuthorization: Bearer TOKEN\nContent-Type: application/json\n\n{\n  \"message\": \"سلام، پلن‌ها چیست؟\",\n  \"thread_id\": \"th_... (optional)\",\n  \"stream\": false\n}",'res'=>"{\n  \"thread_id\": \"th_...\",\n  \"answer\": \"...\"\n}"],
+  ['t'=>'۳ · چت استریم (SSE)','req'=>"POST /api/v1/agents/{slug}/chat\n{\n  \"message\": \"سلام\",\n  \"stream\": true\n}\n\nevents → data: {\"text\": \"...\"} … data: {\"done\": true}",'res'=>'Server-Sent Events'],
+  ['t'=>'۴ · تاریخچه گفتگو','req'=>"GET /api/v1/agents/{slug}/history?thread_id=th_...\nAuthorization: Bearer TOKEN",'res'=>'sessions + messages'],
+];
+@endphp
+@foreach($steps as $s)
+  <div class="card overflow-hidden">
+    <div class="border-b bg-slate-50/70 px-5 py-2.5 text-sm font-bold">{{ $s['t'] }}</div>
+    <div class="grid gap-0 md:grid-cols-2" dir="ltr" style="text-align:left">
+      <div class="border-b md:border-b-0 md:border-r"><div class="px-4 pt-2 text-[11px] font-bold text-slate-400">REQUEST</div><pre class="md-code !bg-transparent !text-slate-800">{{ $s['req'] }}</pre></div>
+      <div class="bg-slate-900"><div class="px-4 pt-2 text-[11px] font-bold text-slate-500">RESPONSE</div><pre class="md-code !bg-transparent">{{ $s['res'] }}</pre></div>
+    </div>
+  </div>
+@endforeach
 
-<h3 class="font-bold">2) چت با ایجنت (با slug ایجنت)</h3>
-<pre class="bg-gray-900 text-green-300 rounded p-3">POST /api/v1/agents/{slug}/chat
-Authorization: Bearer YOUR_TOKEN
-Content-Type: application/json
-
-{
-  "message": "سلام، محصول X چیست؟",
-  "thread_id": "optional-thread-to-continue",
-  "stream": false
-}</pre>
-<p>پاسخ:</p>
-<pre class="bg-gray-900 text-green-300 rounded p-3">{"thread_id": "th_...", "answer": "..."}</pre>
-
-<h3 class="font-bold">3) چت استریم (SSE)</h3>
-<pre class="bg-gray-900 text-green-300 rounded p-3">POST /api/v1/agents/{slug}/chat
-{"message": "سلام", "stream": true}
-// events: data: {"text": "..."} ... data: {"done": true}</pre>
-
-<h3 class="font-bold">4) تاریخچه</h3>
-<pre class="bg-gray-900 text-green-300 rounded p-3">GET /api/v1/agents/{slug}/history?thread_id=th_...
-Authorization: Bearer YOUR_TOKEN</pre>
-
-<h3 class="font-bold">مثال curl</h3>
-<pre class="bg-gray-900 text-green-300 rounded p-3">curl -X POST http://localhost:8000/api/v1/agents/my-agent/chat \
-  -H "Authorization: Bearer YOUR_TOKEN" \
+  <div class="card overflow-hidden">
+    <div class="border-b bg-slate-50/70 px-5 py-2.5 text-sm font-bold">🐚 مثال curl</div>
+    <div dir="ltr" style="text-align:left"><pre class="md-code !m-4">curl -X POST {{ rtrim(config('app.url'),' /') }}/api/v1/agents/general-assistant/chat \
+  -H "Authorization: Bearer TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"message":"سلام"}'</pre>
+  -d '{"message":"سلام"}'</pre></div>
+  </div>
 
-<h3 class="font-bold">مثال PHP</h3>
-<pre class="bg-gray-900 text-green-300 rounded p-3">$ch = curl_init("http://localhost:8000/api/v1/agents/my-agent/chat");
+  <div class="card overflow-hidden">
+    <div class="border-b bg-slate-50/70 px-5 py-2.5 text-sm font-bold">🐘 مثال PHP</div>
+    <div dir="ltr" style="text-align:left"><pre class="md-code !m-4">$ch = curl_init("{{ rtrim(config('app.url'),' /') }}/api/v1/agents/general-assistant/chat");
 curl_setopt_array($ch, [
   CURLOPT_POST => true,
   CURLOPT_RETURNTRANSFER => true,
-  CURLOPT_HTTPHEADER => ["Authorization: Bearer YOUR_TOKEN","Content-Type: application/json"],
-  CURLOPT_POSTFIELDS => json_encode(["message" => "سلام"]),
+  CURLOPT_HTTPHEADER => ["Authorization: Bearer TOKEN", "Content-Type: application/json"],
+  CURLOPT_POSTFIELDS => json_encode(["message" => "سلام", "thread_id" => $threadId]),
 ]);
-echo curl_exec($ch);</pre>
+$answer = json_decode(curl_exec($ch), true)["answer"] ?? null;</pre></div>
+  </div>
 </div>
 @endsection
