@@ -12,7 +12,7 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
  */
 class DocumentReader
 {
-    public const MAX_CHARS = 200000;
+    public const MAX_CHARS = 2000000; // 2MB — enough for whole books; bigger files get truncated
 
     public const SUPPORTED_EXTENSIONS = [
         'txt', 'md', 'markdown', 'csv', 'json', 'log', 'xml',
