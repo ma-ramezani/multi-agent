@@ -70,8 +70,39 @@ class OpenCodeGo extends OpenAILike
                     'x-opencode-session' => $sessionId ?: 'default',
                 ],
                 timeout: $timeout,
+                options: ['proxy' => self::proxyOptions()],
             ),
         );
+    }
+
+    /**
+     * Route through HTTP(S)_PROXY env when present (Guzzle ignores env proxies
+     * by default, which surfaces as "Connection refused" on filtered networks).
+     */
+    public static function proxyOptions(): array|string
+    {
+        $http = getenv('HTTP_PROXY') ?: getenv('http_proxy') ?: null;
+        $https = getenv('HTTPS_PROXY') ?: getenv('https_proxy') ?: null;
+
+        if (!$http && !$https) {
+            return [];
+        }
+
+        $proxy = [];
+        if ($http) {
+            $proxy['http'] = $http;
+        }
+        if ($https) {
+            $proxy['https'] = $https;
+        }
+
+        $noProxy = getenv('NO_PROXY') ?: getenv('no_proxy') ?: '';
+        $no = array_values(array_filter(array_map('trim', explode(',', $noProxy))));
+        if ($no !== []) {
+            $proxy['no'] = $no;
+        }
+
+        return $proxy;
     }
 
     /**

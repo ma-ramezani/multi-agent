@@ -76,7 +76,7 @@ class ChatController extends Controller
         try {
             $neuron = AgentFactory::make($session->agent, $session->thread_id);
             $state = $neuron->chat(new UserMessage($fullText));
-            $answer = $state->getMessage()->getContent();
+            $answer = $state->getMessage()?->getContent() ?? '(پاسخی از مدل دریافت نشد)';
 
             $sources = $this->extractRagSources($state);
             ChatMessage::create(['chat_session_id' => $session->id, 'role' => 'assistant', 'content' => $answer, 'meta' => ['sources' => $sources]]);
@@ -109,33 +109,22 @@ class ChatController extends Controller
 
         return response()->stream(function () use ($session, $fullText) {
             $answer = '';
-            try {
-                $neuron = AgentFactory::make($session->agent, $session->thread_id);
-                $stream = $neuron->stream(new UserMessage($fullText));
-                foreach ($stream as $chunk) {
-                    // Normalize chunk to text
-                    $piece = '';
-                    if (is_string($chunk)) {
-                        $piece = $chunk;
-                    } elseif (is_object($chunk)) {
-                        if (isset($chunk->content) && is_string($chunk->content)) {
-                            $piece = $chunk->content;
-                        } elseif (method_exists($chunk, '__toString')) {
-                            try { $piece = (string) $chunk; } catch (\Throwable) { $piece = ''; }
+                try {
+                    $neuron = AgentFactory::make($session->agent, $session->thread_id);
+                    // NOTE: in neuron-ai 4.x stream() returns a plain Generator of
+                    // chunks (TextChunk->content, ...); the full answer is the
+                    // concatenation of the text chunks (tool calls resolve inside
+                    // the same generator loop).
+                    foreach ($neuron->stream(new UserMessage($fullText)) as $chunk) {
+                        $piece = self::chunkText($chunk);
+                        if ($piece !== '') {
+                            $answer .= $piece;
+                            echo 'data: ' . json_encode(['text' => $piece], JSON_UNESCAPED_UNICODE) . "\n\n";
+                            if (ob_get_level() > 0) { ob_flush(); }
+                            flush();
                         }
                     }
-                    if ($piece !== '') {
-                        $answer .= $piece;
-                        echo 'data: ' . json_encode(['text' => $piece], JSON_UNESCAPED_UNICODE) . "\n\n";
-                        if (ob_get_level() > 0) { ob_flush(); }
-                        flush();
-                    }
-                }
-                try {
-                    $final = $stream->getResult()?->getMessage()?->getContent();
-                    if ($final && $final !== $answer) { $answer = $final; }
-                } catch (\Throwable) {}
-            } catch (\Throwable $e) {
+                } catch (\Throwable $e) {
                 $err = 'خطا: ' . $e->getMessage();
                 $answer .= $err;
                 echo 'data: ' . json_encode(['text' => $err], JSON_UNESCAPED_UNICODE) . "\n\n";
@@ -193,6 +182,18 @@ class ChatController extends Controller
             $parts[] = '--- فایل: ' . ($att['name'] ?? '') . " ---\n" . $text;
         }
         return implode("\n\n", $parts);
+    }
+
+    protected static function chunkText(mixed $chunk): string
+    {
+        if (is_string($chunk)) {
+            return $chunk;
+        }
+        if (is_object($chunk) && isset($chunk->content) && is_string($chunk->content)) {
+            // TextChunk (and compatible chunks) expose public readonly $content
+            return $chunk->content;
+        }
+        return '';
     }
 
     protected function extractRagSources($state): array

@@ -91,7 +91,7 @@ class AgentApiController extends Controller
         try {
             $neuron = AgentFactory::make($agent, $session->thread_id);
             $state = $neuron->chat(new UserMessage($data['message']));
-            $answer = $state->getMessage()->getContent();
+            $answer = $state->getMessage()?->getContent() ?? '(پاسخی از مدل دریافت نشد)';
             ChatMessage::create(['chat_session_id' => $session->id, 'role' => 'assistant', 'content' => $answer]);
             return response()->json(['thread_id' => $session->thread_id, 'answer' => $answer]);
         } catch (\Throwable $e) {
@@ -106,8 +106,8 @@ class AgentApiController extends Controller
             $answer = '';
             try {
                 $neuron = AgentFactory::make($agent, $session->thread_id);
-                $stream = $neuron->stream(new UserMessage($message));
-                foreach ($stream as $chunk) {
+                // neuron-ai 4.x: stream() is a plain Generator; accumulate text chunks.
+                foreach ($neuron->stream(new UserMessage($message)) as $chunk) {
                     $piece = is_string($chunk) ? $chunk : (is_object($chunk) && isset($chunk->content) && is_string($chunk->content) ? $chunk->content : '');
                     if ($piece !== '') {
                         $answer .= $piece;
