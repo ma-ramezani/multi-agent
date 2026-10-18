@@ -166,16 +166,32 @@ class DocumentReader
                 }
                 // `timeout` guards against tesseract hanging on a pathological page;
                 // exit 124 = skipped page, we simply continue with the next one.
+                // Persian-first keeps RTL logical order; mixing eng in the same
+                // run can flip paragraph direction and mirror the lines.
                 $hasTimeout = trim((string) @shell_exec('which timeout 2>/dev/null')) !== '';
                 $tessCmd = escapeshellarg($tess) . ' ' . escapeshellarg($img) . ' ' . escapeshellarg($dir . '/t')
-                    . ' -l fas+eng --psm 6 2>/dev/null';
+                    . ' -l fas --psm 6 2>/dev/null';
                 if ($hasTimeout) {
                     $tessCmd = 'timeout 180 ' . $tessCmd;
                 }
                 @exec($tessCmd, $o2, $code2);
-                @unlink($img);
                 $txt = is_file($dir . '/t.txt') ? trim((string) @file_get_contents($dir . '/t.txt')) : '';
                 @unlink($dir . '/t.txt');
+                // No Persian at all → probably an English-only page → retry in English.
+                if (($txt === '' || !preg_match('/[\x{0600}-\x{06FF}]/u', $txt)) && is_file($img)) {
+                    $engCmd = escapeshellarg($tess) . ' ' . escapeshellarg($img) . ' ' . escapeshellarg($dir . '/t')
+                        . ' -l eng --psm 6 2>/dev/null';
+                    if ($hasTimeout) {
+                        $engCmd = 'timeout 180 ' . $engCmd;
+                    }
+                    @exec($engCmd, $o3, $code3);
+                    $txtEn = is_file($dir . '/t.txt') ? trim((string) @file_get_contents($dir . '/t.txt')) : '';
+                    @unlink($dir . '/t.txt');
+                    if ($txtEn !== '') {
+                        $txt = $txtEn;
+                    }
+                }
+                @unlink($img);
                 if ($txt !== '') {
                     $out[] = "— صفحه {$p} (OCR) —\n" . $txt;
                 }
@@ -312,15 +328,33 @@ class DocumentReader
         }
         $tmp = tempnam(sys_get_temp_dir(), 'ocr') . '.txt';
         $base = substr($tmp, 0, -4);
-        $cmd = escapeshellarg($bin) . ' ' . escapeshellarg($path) . ' ' . escapeshellarg($base) . ' -l fas+eng --psm 6 2>/dev/null';
+        // Primary pass with Persian: keeps RTL logical order. (fas+eng together
+        // can flip paragraph direction and mirror the lines.)
+        $cmd = escapeshellarg($bin) . ' ' . escapeshellarg($path) . ' ' . escapeshellarg($base) . ' -l fas --psm 6 2>/dev/null';
+        if (trim((string) @shell_exec('which timeout 2>/dev/null')) !== '') {
+            $cmd = 'timeout 120 ' . $cmd;
+        }
         @exec($cmd, $o, $code);
-        $text = is_file($base . '.txt') ? (string) @file_get_contents($base . '.txt') : '';
+        $text = is_file($base . '.txt') ? trim((string) @file_get_contents($base . '.txt')) : '';
         @unlink($base . '.txt');
+        // Fallback: page has no Persian at all → probably English-only → re-run with eng.
+        if ($text === '' || !preg_match('/[\x{0600}-\x{06FF}]/u', $text)) {
+            $cmd2 = escapeshellarg($bin) . ' ' . escapeshellarg($path) . ' ' . escapeshellarg($base) . ' -l eng --psm 6 2>/dev/null';
+            if (trim((string) @shell_exec('which timeout 2>/dev/null')) !== '') {
+                $cmd2 = 'timeout 120 ' . $cmd2;
+            }
+            @exec($cmd2, $o2, $code2);
+            $text2 = is_file($base . '.txt') ? trim((string) @file_get_contents($base . '.txt')) : '';
+            @unlink($base . '.txt');
+            if ($text2 !== '') {
+                $text = $text2;
+            }
+        }
         @unlink($tmp);
         $text = trim($text);
         if ($text === '') {
             return ['text' => '', 'kind' => 'empty', 'detail' => 'از عکس متنی تشخیص داده نشد'];
         }
-        return ['text' => $text, 'kind' => 'ocr', 'detail' => 'OCR فارسی+انگلیسی'];
+        return ['text' => $text, 'kind' => 'ocr', 'detail' => 'OCR فارسی'];
     }
 }
