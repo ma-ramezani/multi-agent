@@ -38,6 +38,10 @@ class RagService
     }
     public static function chunkText(string $text, int $size = 1000, int $overlap = 100): array
     {
+        $size = max(200, $size);
+        // Guard: overlap must stay well below size, otherwise the sliding
+        // window barely advances and chunk count explodes.
+        $overlap = max(0, min($overlap, (int) ($size / 2)));
         $text = trim(preg_replace('/\s+/u', ' ', $text));
         if ($text === '') {
             return [];

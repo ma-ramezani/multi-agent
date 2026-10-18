@@ -197,6 +197,10 @@ class RagEnvironmentController extends Controller
             'top_k' => 'nullable|integer|min:1|max:20',
             'is_active' => 'nullable|boolean',
         ]);
+        // overlap must stay below size or chunking explodes
+        if (($v['chunk_size'] ?? 1000) > 0 && ($v['chunk_overlap'] ?? 0) >= ($v['chunk_size'] ?? 1000)) {
+            $v['chunk_overlap'] = (int) (($v['chunk_size'] ?? 1000) / 4);
+        }
         if ($ignoreId && empty($v['embedding_api_key'])) {
             unset($v['embedding_api_key']);
         }
