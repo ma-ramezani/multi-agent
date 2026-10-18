@@ -122,13 +122,28 @@ class DatabaseVectorStore implements VectorStoreInterface
     }
 
     /**
-     * Fallback keyword search when embeddings are unavailable.
+     * Common Persian (and English) words that carry no retrieval signal.
+     * Without this, long chunks win just by containing more را/به/که/در.
      */
+    protected const STOPWORDS = [
+        'و', 'در', 'به', 'از', 'که', 'را', 'با', 'برای', 'این', 'آن', 'است', 'شد', 'شده',
+        'های', 'هایی', 'ها', 'تر', 'ترین', 'می', 'نمی', 'هر', 'هم', 'همه', 'یا', 'اما',
+        'اگر', 'چون', 'تا', 'نیز', 'همین', 'همان', 'چنین', 'چنان', 'خود', 'شما', 'ما',
+        'من', 'تو', 'او', 'ایشان', 'خودتان', 'تان', 'شان', 'مان', 'ام', 'ایم', 'اید', 'اند',
+        'را', 'بر', 'بی', 'ب', 'دو', 'سه', 'یک', 'نه', 'چه', 'چیز', 'چگونه', 'چطور',
+        'کدام', 'کجا', 'کی', 'چیست', 'هست', 'هستند', 'بود', 'باشد', 'باشید', 'کنید', 'کنم',
+        'شود', 'شوند', 'دارد', 'دارند', 'کرد', 'کرده', 'کنند', 'دهد', 'دهند', 'گیرد',
+        'بگیرد', 'شود', 'خواهد', 'باید', 'بسیار', 'خیلی', 'فقط', 'همچنین', 'ولی', 'پس',
+        'the', 'a', 'an', 'and', 'or', 'of', 'to', 'in', 'is', 'are', 'was', 'what', 'who',
+    ];
     public function keywordSearch(string $query, int $topK = 4): array
     {
         $chunks = RagChunk::whereIn('rag_environment_id', $this->environmentIds)->get();
-        $terms = preg_split('/\s+/u', mb_strtolower($query));
-        $terms = array_filter($terms, fn ($t) => mb_strlen($t) > 1);
+        $raw = preg_split('/\s+/u', mb_strtolower($query));
+        $raw = array_filter($raw, fn ($t) => mb_strlen($t) > 1);
+        // drop stopwords so content terms decide; keep all terms if none left
+        $filtered = array_values(array_filter($raw, fn ($t) => !in_array($t, self::STOPWORDS, true)));
+        $terms = $filtered !== [] ? $filtered : array_values($raw);
 
         $scored = [];
         foreach ($chunks as $chunk) {
