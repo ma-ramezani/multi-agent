@@ -51,6 +51,16 @@ OPENCODE_GO_API_KEY=...
 - `app/Http/Controllers`: `Dashboard`, `Agent`, `RagEnvironment`, `Chat` (web + SSE + upload), `ApiToken`, `Api/AgentApi`
 - `resources/views`: `dashboard`, `agents/*`, `rags/*`, `chats/*` (چت زنده با EventSource), `tokens/*`, `api-docs`
 
+## ورودی صوتی
+
+- دکمه میکروفون در چت: گفتار به نوشتار فارسی (Web Speech API، بدون نیاز به سرور)
+- فایل صوتی (mp3/wav/ogg/m4a/webm/flac) هم به‌عنوان پیوست چت و هم در RAG پشتیبانی می‌شود؛ با سرویس لوکال faster-whisper (`large-v3-turbo`) رونویسی فارسی انجام می‌شود
+- تنظیمات در `.env`: `STT_SCRIPT` ،`STT_MODEL` ،`STT_SERVER_URL`
+
+## مرکز امنیت (`/security`)
+
+سپرهای اجباری + قابل تنظیم: سیاست ضداینجکشن (الحاق خودکار به همه ایجنت‌ها)، حذف خودکار اسرار از خروجی، سندباکس فایل‌سیستم، لیست سیاه جداول دیتابیس، ضد SSRF، سقف آپلود/پسوندها، نرخ‌محدودیت چت و API، قوانین اضافه مدیر، و ممیزی کامل رویدادها (بلاک‌ها، هشدارها، اینجکشن‌های مشکوک).
+
 ## API
 
 توکن را از بخش «توکن‌های API» بسازید.
