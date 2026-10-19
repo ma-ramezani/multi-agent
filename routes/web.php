@@ -5,6 +5,7 @@ use App\Http\Controllers\ApiTokenController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FileController;
+use App\Http\Controllers\SecurityController;
 use App\Http\Controllers\RagEnvironmentController;
 use Illuminate\Support\Facades\Route;
 
@@ -21,9 +22,9 @@ Route::delete('rags/{rag}/docs/{document}', [RagEnvironmentController::class, 'd
 Route::get('chats', [ChatController::class, 'index'])->name('chats.index');
 Route::post('agents/{agent}/chats/start', [ChatController::class, 'start'])->name('chats.start');
 Route::get('chats/{session}', [ChatController::class, 'show'])->name('chats.show');
-Route::post('chats/{session}/send', [ChatController::class, 'send'])->name('chats.send');
-Route::get('chats/{session}/stream', [ChatController::class, 'stream'])->name('chats.stream');
-Route::post('chats/{session}/upload', [ChatController::class, 'upload'])->name('chats.upload');
+Route::post('chats/{session}/send', [ChatController::class, 'send'])->middleware('throttle:chat')->name('chats.send');
+Route::get('chats/{session}/stream', [ChatController::class, 'stream'])->middleware('throttle:chat')->name('chats.stream');
+Route::post('chats/{session}/upload', [ChatController::class, 'upload'])->middleware('throttle:chat')->name('chats.upload');
 Route::delete('chats/{session}', [ChatController::class, 'destroy'])->name('chats.destroy');
 
 Route::get('tokens', [ApiTokenController::class, 'index'])->name('tokens.index');
@@ -31,6 +32,10 @@ Route::post('tokens', [ApiTokenController::class, 'store'])->name('tokens.store'
 Route::delete('tokens/{token}', [ApiTokenController::class, 'destroy'])->name('tokens.destroy');
 
 Route::get('api-docs', fn () => view('api-docs'))->name('api.docs');
+
+Route::get('security', [SecurityController::class, 'index'])->name('security.index');
+Route::post('security', [SecurityController::class, 'update'])->name('security.update');
+Route::delete('security/events', [SecurityController::class, 'clearEvents'])->name('security.clear');
 
 Route::get('files/chat/{message}/{index}', [FileController::class, 'chatAttachment'])->name('files.chat')->whereNumber('index');
 Route::get('files/rag/{document}', [FileController::class, 'ragDocument'])->name('files.rag');

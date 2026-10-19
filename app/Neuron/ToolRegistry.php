@@ -27,6 +27,7 @@ class ToolRegistry
     public static function build(array $enabled, ?array $toolConfig = []): array
     {
         $tools = [];
+        $S = \App\Models\SecuritySetting::class;
         foreach ($enabled as $key) {
             switch ($key) {
                 case 'calculator':
@@ -38,14 +39,23 @@ class ToolRegistry
                     $tools[] = \NeuronAI\Tools\Toolkits\Calendar\CalendarToolkit::make();
                     break;
                 case 'filesystem':
+                    if (!$S::bool('fs_enabled')) {
+                        break;
+                    }
                     // Sandboxed read-only workspace instead of the raw toolkit
                     // (which ships bash/write/delete tools — never expose those).
                     $tools[] = new ScopedFileTool();
                     break;
                 case 'web_fetch':
+                    if (!$S::bool('webfetch_enabled')) {
+                        break;
+                    }
                     $tools[] = new WebFetchTool();
                     break;
                 case 'database_read':
+                    if (!$S::bool('db_enabled')) {
+                        break;
+                    }
                     $tools[] = new DatabaseReadTool();
                     break;
             }

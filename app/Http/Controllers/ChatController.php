@@ -60,6 +60,7 @@ class ChatController extends Controller
     {
         $request->validate(['message' => 'required|string|max:20000']);
         $text = $request->input('message');
+        \App\Neuron\PromptGuard::check($text, 'web-chat');
 
         // handle uploaded files attached to this turn (stored in session meta temp)
         $context = $this->buildAttachmentContext($session);
@@ -97,6 +98,10 @@ class ChatController extends Controller
         if (trim($text) === '') {
             return response('پیام خالی است', 422);
         }
+        if (mb_strlen($text) > 20000) {
+            return response('پیام بیش از حد طولانی است', 422);
+        }
+        \App\Neuron\PromptGuard::check($text, 'web-chat-stream');
 
         $context = $this->buildAttachmentContext($session);
         $fullText = $text . ($context ? "\n\n[فایل‌های پیوست]:\n" . $context : '');
@@ -146,10 +151,12 @@ class ChatController extends Controller
 
     public function upload(Request $request, ChatSession $session)
     {
+        $maxKb = max(1, \App\Models\SecuritySetting::int('upload_max_mb', 50)) * 1024;
+        $allowed = array_filter(array_map('trim', explode(',', strtolower((string) \App\Models\SecuritySetting::get('upload_allowed_exts', '')))));
         $request->validate([
             'files' => 'nullable|array',
-            'files.*' => 'file|max:51200',
-            'file' => 'nullable|file|max:51200',
+            'files.*' => "file|max:{$maxKb}",
+            'file' => "nullable|file|max:{$maxKb}",
         ]);
         $files = [];
         if ($request->hasFile('files')) {
@@ -166,8 +173,10 @@ class ChatController extends Controller
         $rejected = [];
         foreach ($files as $file) {
             $name = $file->getClientOriginalName();
-            if (!\App\Neuron\DocumentReader::isSupported($name)) {
+            $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+            if (!\App\Neuron\DocumentReader::isSupported($name) || ($allowed !== [] && !in_array($ext, $allowed, true))) {
                 $rejected[] = $name;
+                \App\Models\SecurityEvent::log('upload_rejected', 'فرمت غیرمجاز آپلود چت: ' . $name, 'warn');
                 continue;
             }
             $path = $file->store('chat-uploads/' . $session->id, 'local');

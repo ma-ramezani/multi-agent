@@ -60,16 +60,20 @@ class RagEnvironmentController extends Controller
 
     public function upload(Request $request, RagEnvironment $rag)
     {
+        $maxKb = max(1, \App\Models\SecuritySetting::int('upload_max_mb', 50)) * 1024;
         $request->validate([
-            'files.*' => 'required|file|max:51200',
+            'files.*' => "required|file|max:{$maxKb}",
             'raw_text' => 'nullable|string|max:500000',
             'raw_name' => 'nullable|string|max:255',
         ]);
 
+        $allowed = array_filter(array_map('trim', explode(',', strtolower((string) \App\Models\SecuritySetting::get('upload_allowed_exts', '')))));
         if ($request->hasFile('files')) {
             foreach ($request->file('files') as $file) {
-                if (!\App\Neuron\DocumentReader::isSupported($file->getClientOriginalName())) {
-                    return back()->withErrors(['files' => 'فرمت پشتیبانی نمی‌شود: ' . $file->getClientOriginalName() . ' — فرمت‌های مجاز: txt, md, csv, json, html, pdf, docx, xlsx, xls, pptx, png, jpg, webp']);
+                $ext = strtolower(pathinfo($file->getClientOriginalName(), PATHINFO_EXTENSION));
+                if (!\App\Neuron\DocumentReader::isSupported($file->getClientOriginalName()) || ($allowed !== [] && !in_array($ext, $allowed, true))) {
+                    \App\Models\SecurityEvent::log('upload_rejected', 'فرمت غیرمجاز آپلود RAG: ' . $file->getClientOriginalName(), 'warn');
+                    return back()->withErrors(['files' => 'فرمت پشتیبانی نمی‌شود: ' . $file->getClientOriginalName() . ' — فرمت‌های مجاز: txt, md, csv, json, html, pdf, docx, xlsx, pptx, png, jpg, mp3, wav, ogg, m4a']);
                 }
             }
         }
@@ -141,10 +145,11 @@ class RagEnvironmentController extends Controller
         if ($document->rag_environment_id !== $rag->id) {
             abort(404);
         }
+        $maxKb = max(1, \App\Models\SecuritySetting::int('upload_max_mb', 50)) * 1024;
         $data = $request->validate([
             'original_name' => 'required|string|max:255',
             'content' => 'nullable|string|max:1000000',
-            'replace_file' => 'nullable|file|max:51200',
+            'replace_file' => "nullable|file|max:{$maxKb}",
             'force_ocr' => 'nullable|boolean',
         ]);
 

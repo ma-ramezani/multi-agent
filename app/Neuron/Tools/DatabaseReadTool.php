@@ -16,7 +16,7 @@ class DatabaseReadTool extends Tool
     protected const DENIED_TABLES = [
         'users', 'api_tokens', 'password_resets', 'password_reset_tokens',
         'sessions', 'jobs', 'failed_jobs', 'job_batches', 'cache', 'cache_locks',
-        'migrations', 'personal_access_tokens',
+        'migrations', 'personal_access_tokens', 'security_settings', 'security_events',
     ];
 
     /** Column/keyword fragments that indicate credential exfiltration. */
@@ -44,22 +44,28 @@ class DatabaseReadTool extends Tool
         allowed:
         // stacked queries / multi-statements are forbidden
         if (preg_match('/;\s*\S/', trim($sql))) {
+            \App\Models\SecurityEvent::log('db_blocked', 'تلاش برای اجرای چند دستور همزمان', 'blocked');
             return ToolOutput::text('Multiple statements are not allowed.');
         }
-        // deny sensitive tables (match backticked, quoted or bare names)
+        // deny sensitive tables: built-in list + admin-configured list
+        $extraDenied = array_filter(array_map('trim', explode(',', strtolower((string) \App\Models\SecuritySetting::get('db_deny_tables', '')))));
+        $denied = array_unique(array_merge(self::DENIED_TABLES, $extraDenied));
         $lower = strtolower($sql);
-        foreach (self::DENIED_TABLES as $t) {
-            if (preg_match('/\b' . preg_quote($t, '/') . '\b/', $lower)) {
+        foreach ($denied as $t) {
+            if ($t !== '' && preg_match('/\b' . preg_quote($t, '/') . '\b/', $lower)) {
+                \App\Models\SecurityEvent::log('db_blocked', "دسترسی به جدول مسدودشده: {$t}", 'blocked');
                 return ToolOutput::text("Access to the '{$t}' table is blocked by the security policy.");
             }
         }
         // deny credential-ish columns
         foreach (self::DENIED_KEYWORDS as $k) {
             if (preg_match('/\b' . preg_quote($k, '/') . '\b/', $lower)) {
+                \App\Models\SecurityEvent::log('db_blocked', "ستون حساس مسدودشده: {$k}", 'blocked');
                 return ToolOutput::text("Columns matching '{$k}' are blocked by the security policy.");
             }
         }
-        $limit = max(1, min(100, (int) $limit));
+        $maxRows = \App\Models\SecuritySetting::int('db_max_rows', 20) ?: 20;
+        $limit = max(1, min($maxRows, 100, (int) $limit));
         try {
             $rows = \DB::select($sql);
             $rows = array_slice($rows, 0, $limit);

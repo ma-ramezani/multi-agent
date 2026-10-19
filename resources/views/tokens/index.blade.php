@@ -2,7 +2,7 @@
 @section('title','توکن‌های API')
 @section('content')
 <div class="mb-5">
-  <h1 class="text-2xl font-extrabold">🔑 توکن‌های API</h1>
+  <h1 class="text-2xl font-extrabold">{!! svg_icon('key','w-4 h-4 inline-block -mt-0.5') !!}  توکن‌های API</h1>
   <p class="mt-1 text-sm text-slate-500">نرم‌افزارهای دیگر با این توکن‌ها (هدر <code dir="ltr">Authorization: Bearer</code>) به ایجنت‌ها وصل می‌شوند</p>
 </div>
 
@@ -35,7 +35,7 @@
         <td class="text-xs">{{ empty($t->agent_ids) ? 'همه ایجنت‌ها' : fa_num(count($t->agent_ids)).' ایجنت' }}</td>
         <td class="text-xs text-slate-500">{{ $t->last_used_at ? fa_date($t->last_used_at) : '—' }}</td>
         <td>@if($t->is_active)<span class="pill bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200">● فعال</span>@else<span class="pill bg-slate-100 text-slate-500">○</span>@endif</td>
-        <td class="text-left"><form method="POST" action="{{ route('tokens.destroy',$t) }}" onsubmit="return confirm('توکن حذف شود؟')">@csrf @method('DELETE')<button class="btn btn-danger-ghost !px-2 !py-1 !text-[11px]">🗑</button></form></td>
+        <td class="text-left"><form method="POST" action="{{ route('tokens.destroy',$t) }}" onsubmit="return confirm('توکن حذف شود؟')">@csrf @method('DELETE')<button class="btn btn-danger-ghost !px-2 !py-1 !text-[11px]">{!! svg_icon('trash','w-4 h-4 inline-block -mt-0.5') !!} </button></form></td>
       </tr>
     @empty
       <tr><td colspan="6" class="px-5 py-6 text-center text-sm text-slate-400">توکنی ساخته نشده است.</td></tr>

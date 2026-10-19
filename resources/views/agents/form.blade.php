@@ -16,7 +16,7 @@ $modelsByProvider = [
 ];
 @endphp
 <div class="mb-5">
-  <h1 class="text-2xl font-extrabold">{{ $agent->exists ? '✏️ ویرایش ایجنت: ' . $agent->name : '＋ ایجنت جدید' }}</h1>
+  <h1 class="text-2xl font-extrabold">{!! svg_icon('edit','w-6 h-6 inline-block -mt-1') !!} {{ $agent->exists ? 'ویرایش ایجنت: ' . $agent->name : '＋ ایجنت جدید' }}</h1>
   <p class="mt-1 text-sm text-slate-500">همه تنظیمات ایجنت از همین‌جا انجام می‌شود و بلافاصله اعمال می‌گردد.</p>
 </div>
 
@@ -64,7 +64,7 @@ $modelsByProvider = [
     </div>
   </div>
   <div id="goBox" class="mt-3 hidden rounded-xl border border-violet-200 bg-violet-50 p-3 text-xs leading-6 text-violet-900">
-    <b>💡 OpenCode Go:</b> کلید را در <code dir="ltr">OPENCODE_GO_API_KEY</code> بگذارید. مدل‌های پیشنهادی:
+    <b>{!! svg_icon('info','w-4 h-4 inline-block -mt-0.5') !!}  OpenCode Go:</b> کلید را در <code dir="ltr">OPENCODE_GO_API_KEY</code> بگذارید. مدل‌های پیشنهادی:
     <span dir="ltr">longcat-2.5-preview-free (رایگان)</span> ·
     <span dir="ltr">mimo-v2.6-flash</span> ·
     <span dir="ltr">muse-spark-1.3-contributor</span> ·
@@ -117,7 +117,7 @@ $modelsByProvider = [
       @foreach($envs as $e)
         <label class="flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition hover:border-emerald-300 hover:bg-emerald-50/50 has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50">
           <input type="checkbox" name="rag_environment_ids[]" value="{{ $e->id }}" {{ in_array($e->id, old('rag_environment_ids',$agent->resolvedRagIds()))?'checked':'' }} class="mt-1 h-4 w-4 accent-emerald-600">
-          <span><b class="text-sm">📚 {{ $e->name }}</b> <span class="font-mono text-[11px] text-slate-400" dir="ltr">{{ $e->slug }}</span><br>
+          <span><b class="text-sm">{!! svg_icon('book','w-4 h-4 inline-block -mt-0.5') !!}  {{ $e->name }}</b> <span class="font-mono text-[11px] text-slate-400" dir="ltr">{{ $e->slug }}</span><br>
           <span class="text-xs text-slate-500">{{ fa_num($e->chunks_count ?? $e->chunks()->count()) }} چانک · امبدینگ: {{ $e->embedding_model }}</span></span>
         </label>
       @endforeach
@@ -128,18 +128,18 @@ $modelsByProvider = [
 
 {{-- ۶. سپر امنیتی (غیرقابل ویرایش، همیشه فعال) --}}
 <div class="card mt-4 border-emerald-200 bg-emerald-50/60 p-5">
-  <h2 class="mb-1 flex items-center gap-2 font-bold text-emerald-900"><span class="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-xs text-white">۶</span> 🛡 سپر امنیتی (خودکار و اجباری)</h2>
+  <h2 class="mb-1 flex items-center gap-2 font-bold text-emerald-900"><span class="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-xs text-white">۶</span> {!! svg_icon('shield','w-4 h-4 inline-block -mt-0.5') !!}  سپر امنیتی (خودکار و اجباری)</h2>
   <ul class="mt-2 space-y-1 text-xs leading-6 text-emerald-900">
-    <li>✅ دستورالعمل امنیتی به انتهای system prompt همه ایجنت‌ها <b>الحاق می‌شود</b> و از فرم قابل حذف نیست.</li>
-    <li>✅ ابزار فایل‌سیستم فقط به پوشه <code dir="ltr">storage/app/agent-files</code> دسترسی دارد (بدون bash/نوشتن/حذف).</li>
-    <li>✅ دیتابیس فقط SELECT است؛ جداول <code dir="ltr">users, api_tokens, jobs, sessions</code> و ستون‌های رمزی مسدودند.</li>
-    <li>✅ دریافت وب فقط برای آدرس‌های عمومی است (localhost و شبکه داخلی و متادیتای ابری مسدود).</li>
-    <li>✅ خروجی مدل قبل از ذخیره، از فیلتر افشای کلید عبور می‌کند.</li>
+    <li>{!! svg_icon('check','w-4 h-4 inline-block -mt-0.5') !!}  دستورالعمل امنیتی به انتهای system prompt همه ایجنت‌ها <b>الحاق می‌شود</b> و از فرم قابل حذف نیست.</li>
+    <li>{!! svg_icon('check','w-4 h-4 inline-block -mt-0.5') !!}  ابزار فایل‌سیستم فقط به پوشه <code dir="ltr">storage/app/agent-files</code> دسترسی دارد (بدون bash/نوشتن/حذف).</li>
+    <li>{!! svg_icon('check','w-4 h-4 inline-block -mt-0.5') !!}  دیتابیس فقط SELECT است؛ جداول <code dir="ltr">users, api_tokens, jobs, sessions</code> و ستون‌های رمزی مسدودند.</li>
+    <li>{!! svg_icon('check','w-4 h-4 inline-block -mt-0.5') !!}  دریافت وب فقط برای آدرس‌های عمومی است (localhost و شبکه داخلی و متادیتای ابری مسدود).</li>
+    <li>{!! svg_icon('check','w-4 h-4 inline-block -mt-0.5') !!}  خروجی مدل قبل از ذخیره، از فیلتر افشای کلید عبور می‌کند.</li>
   </ul>
 </div>
 
 <div class="sticky bottom-4 mt-6 flex items-center gap-3 rounded-2xl border bg-white/95 p-3 shadow-lg backdrop-blur">  <label class="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" name="is_active" value="1" {{ old('is_active',$agent->is_active ?? true)?'checked':'' }} class="h-4 w-4 accent-emerald-600"> فعال</label>
-  <button class="btn btn-primary flex-1 justify-center !py-2.5">💾 ذخیره ایجنت</button>
+  <button class="btn btn-primary flex-1 justify-center !py-2.5">{!! svg_icon('save','w-4 h-4 inline-block -mt-0.5') !!}  ذخیره ایجنت</button>
   <a href="{{ route('agents.index') }}" class="btn btn-ghost">انصراف</a>
 </div>
 </form>

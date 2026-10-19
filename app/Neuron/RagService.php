@@ -20,8 +20,8 @@ class RagService
             return mb_strlen($doc->raw_text) > 200000;
         }
         $ext = strtolower(pathinfo($doc->original_name ?? '', PATHINFO_EXTENSION));
-        if ($ext === 'pdf') {
-            return true; // may require per-page OCR
+        if ($ext === 'pdf' || in_array($ext, SpeechToText::SUPPORTED, true)) {
+            return true; // may require per-page OCR / transcription (minutes)
         }
         return ((int) ($doc->size ?? 0)) > 3 * 1024 * 1024;
     }

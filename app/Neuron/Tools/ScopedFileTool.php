@@ -52,6 +52,7 @@ class ScopedFileTool extends Tool
         $candidate = $root . '/' . ltrim(str_replace('\\', '/', $path), '/');
         $real = realpath($candidate);
         if ($real === false || !is_file($real) || !str_starts_with($real, $root . DIRECTORY_SEPARATOR)) {
+            \App\Models\SecurityEvent::log('fs_blocked', 'تلاش دسترسی خارج از سندباکس فایل', 'blocked', ['path' => mb_substr($path, 0, 120)]);
             return ToolOutput::text('Access denied: path is outside the workspace or does not exist.');
         }
         if (filesize($real) > 200000) {

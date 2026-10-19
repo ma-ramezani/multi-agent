@@ -3,7 +3,7 @@
 @section('content')
 <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
   <div>
-    <h1 class="text-2xl font-extrabold">📚 محیط‌های دانش (RAG)</h1>
+    <h1 class="text-2xl font-extrabold">{!! svg_icon('book','w-4 h-4 inline-block -mt-0.5') !!}  محیط‌های دانش (RAG)</h1>
     <p class="mt-1 text-sm text-slate-500">هر محیط یک پایگاه دانش مستقل است: امبدینگ، چانکینگ و بازیابی خودش را دارد</p>
   </div>
   <a href="{{ route('rags.create') }}" class="btn btn-primary">＋ محیط جدید</a>
@@ -11,7 +11,7 @@
 
 @if($envs->isEmpty())
   <div class="card p-10 text-center">
-    <div class="text-5xl">📚</div>
+    <div class="text-5xl">{!! svg_icon('book','w-4 h-4 inline-block -mt-0.5') !!} </div>
     <h2 class="mt-3 font-extrabold">هنوز محیط دانشی نساخته‌اید</h2>
     <p class="mt-1 text-sm text-slate-500">فایل آپلود کنید یا متن بچسبانید؛ سیستم خودش چانک و وکتور می‌سازد.</p>
     <a href="{{ route('rags.create') }}" class="btn btn-primary mt-4">ساخت اولین محیط</a>
@@ -22,7 +22,7 @@
   @php $pct = $e->chunks_count > 0 ? round(100 * ($e->chunks()->whereNotNull('embedding')->count() / max(1,$e->chunks_count))) : 0; @endphp
   <div class="card card-hover flex flex-col p-5">
     <div class="flex items-start justify-between gap-2">
-      <h2 class="font-extrabold">📚 {{ $e->name }}</h2>
+      <h2 class="font-extrabold">{!! svg_icon('book','w-4 h-4 inline-block -mt-0.5') !!}  {{ $e->name }}</h2>
       @if($e->is_active)<span class="pill bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200">● فعال</span>
       @else<span class="pill bg-slate-100 text-slate-500 ring-1 ring-slate-200">○ غیرفعال</span>@endif
     </div>
@@ -35,9 +35,9 @@
     </div>
     <div class="mt-2 font-mono text-[11px] text-slate-500" dir="ltr">{{ $e->embedding_provider }} / {{ $e->embedding_model }}</div>
     <div class="mt-4 flex gap-2 border-t pt-3">
-      <a href="{{ route('rags.show',$e) }}" class="btn btn-green flex-1 justify-center !py-1.5 !text-xs">📄 مدیریت اسناد</a>
-      <a href="{{ route('rags.edit',$e) }}" class="btn btn-ghost !py-1.5 !text-xs">⚙️ تنظیمات</a>
-      <form method="POST" action="{{ route('rags.destroy',$e) }}" onsubmit="return confirm('محیط و همه اسنادش حذف شود؟')">@csrf @method('DELETE')<button class="btn btn-danger-ghost !py-1.5 !text-xs">🗑</button></form>
+      <a href="{{ route('rags.show',$e) }}" class="btn btn-green flex-1 justify-center !py-1.5 !text-xs">{!! svg_icon('doc','w-4 h-4 inline-block -mt-0.5') !!}  مدیریت اسناد</a>
+      <a href="{{ route('rags.edit',$e) }}" class="btn btn-ghost !py-1.5 !text-xs">{!! svg_icon('settings','w-4 h-4 inline-block -mt-0.5') !!}  تنظیمات</a>
+      <form method="POST" action="{{ route('rags.destroy',$e) }}" onsubmit="return confirm('محیط و همه اسنادش حذف شود؟')">@csrf @method('DELETE')<button class="btn btn-danger-ghost !py-1.5 !text-xs">{!! svg_icon('trash','w-4 h-4 inline-block -mt-0.5') !!} </button></form>
     </div>
   </div>
 @endforeach

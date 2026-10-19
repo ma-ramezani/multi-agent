@@ -5,10 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <title>@yield('title', 'پلتفرم ایجنت‌ها') · Neuron</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>{!! svg_icon('brain','w-4 h-4 inline-block -mt-0.5') !!} </text></svg>">
+<style>
+@font-face{font-family:'Vazirmatn';src:url('/fonts/Vazirmatn-Regular.woff2') format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:'Vazirmatn';src:url('/fonts/Vazirmatn-Medium.woff2') format('woff2');font-weight:500;font-display:swap}
+@font-face{font-family:'Vazirmatn';src:url('/fonts/Vazirmatn-Bold.woff2') format('woff2');font-weight:700;font-display:swap}
+@font-face{font-family:'Vazirmatn';src:url('/fonts/Vazirmatn-ExtraBold.woff2') format('woff2');font-weight:800;font-display:swap}
+</style>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
 tailwind.config = {
@@ -58,17 +61,18 @@ tailwind.config = {
   <!-- Sidebar -->
   <aside class="hidden lg:flex w-64 shrink-0 flex-col text-white px-4 py-6 sticky top-0 h-screen" style="background:linear-gradient(180deg,#141c38 0%,#1e2a5a 100%)">
     <a href="{{ route('dashboard') }}" class="flex items-center gap-2 px-2 mb-8">
-      <span class="text-3xl">🤖</span>
+      <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-violet-500 text-white">{!! svg_icon('brain','w-6 h-6') !!}</span>
       <span><span class="block font-extrabold text-lg leading-6">پلتفرم ایجنت</span>
       <span class="block text-[11px] text-slate-400 font-normal">Neuron AI · Laravel 12</span></span>
     </a>
     <nav class="space-y-1 flex-1">
-      <a href="{{ route('dashboard') }}" class="navlink {{ request()->routeIs('dashboard')?'active':'' }}">🏠 داشبورد</a>
-      <a href="{{ route('agents.index') }}" class="navlink {{ request()->routeIs('agents.*')?'active':'' }}">🧠 ایجنت‌ها</a>
-      <a href="{{ route('rags.index') }}" class="navlink {{ request()->routeIs('rags.*')?'active':'' }}">📚 محیط‌های RAG</a>
-      <a href="{{ route('chats.index') }}" class="navlink {{ request()->routeIs('chats.*')?'active':'' }}">💬 چت زنده</a>
-      <a href="{{ route('tokens.index') }}" class="navlink {{ request()->routeIs('tokens.*')?'active':'' }}">🔑 توکن‌های API</a>
-      <a href="{{ route('api.docs') }}" class="navlink {{ request()->routeIs('api.docs')?'active':'' }}">📖 مستندات API</a>
+      <a href="{{ route('dashboard') }}" class="navlink {{ request()->routeIs('dashboard')?'active':'' }}">{!! svg_icon('home','w-5 h-5') !!} داشبورد</a>
+      <a href="{{ route('agents.index') }}" class="navlink {{ request()->routeIs('agents.*')?'active':'' }}">{!! svg_icon('brain','w-5 h-5') !!} ایجنت‌ها</a>
+      <a href="{{ route('rags.index') }}" class="navlink {{ request()->routeIs('rags.*')?'active':'' }}">{!! svg_icon('book','w-5 h-5') !!} محیط‌های RAG</a>
+      <a href="{{ route('chats.index') }}" class="navlink {{ request()->routeIs('chats.*')?'active':'' }}">{!! svg_icon('chat','w-5 h-5') !!} چت زنده</a>
+      <a href="{{ route('tokens.index') }}" class="navlink {{ request()->routeIs('tokens.*')?'active':'' }}">{!! svg_icon('key','w-5 h-5') !!} توکن‌های API</a>
+      <a href="{{ route('security.index') }}" class="navlink {{ request()->routeIs('security.*')?'active':'' }}">{!! svg_icon('shield','w-5 h-5') !!} مرکز امنیت</a>
+      <a href="{{ route('api.docs') }}" class="navlink {{ request()->routeIs('api.docs')?'active':'' }}">{!! svg_icon('doc','w-5 h-5') !!} مستندات API</a>
     </nav>
     <div class="rounded-xl p-3 text-[11px] leading-5" style="background:rgba(255,255,255,.07)">
       <b class="text-emerald-300">● سیستم فعال</b><br>
@@ -79,23 +83,23 @@ tailwind.config = {
   <!-- Main -->
   <div class="flex-1 min-w-0">
     <!-- Mobile topbar -->
-    <div class="lg:hidden sticky top-0 z-20 bg-white/90 backdrop-blur border-b px-4 py-2 flex gap-3 overflow-x-auto text-sm font-medium">
-      <a href="{{ route('dashboard') }}">🏠</a><a href="{{ route('agents.index') }}">🧠</a><a href="{{ route('rags.index') }}">📚</a><a href="{{ route('chats.index') }}">💬</a><a href="{{ route('tokens.index') }}">🔑</a><a href="{{ route('api.docs') }}">📖</a>
+    <div class="lg:hidden sticky top-0 z-20 bg-white/90 backdrop-blur border-b px-4 py-2 flex gap-4 overflow-x-auto text-slate-600">
+      <a href="{{ route('dashboard') }}" class="flex items-center gap-1 text-sm">{!! svg_icon('home','w-4 h-4') !!}</a><a href="{{ route('agents.index') }}" class="flex items-center gap-1 text-sm">{!! svg_icon('brain','w-4 h-4') !!}</a><a href="{{ route('rags.index') }}" class="flex items-center gap-1 text-sm">{!! svg_icon('book','w-4 h-4') !!}</a><a href="{{ route('chats.index') }}" class="flex items-center gap-1 text-sm">{!! svg_icon('chat','w-4 h-4') !!}</a>      <a href="{{ route('tokens.index') }}" class="flex items-center gap-1 text-sm">{!! svg_icon('key','w-4 h-4') !!}</a><a href="{{ route('security.index') }}" class="flex items-center gap-1 text-sm">{!! svg_icon('shield','w-4 h-4') !!}</a><a href="{{ route('api.docs') }}" class="flex items-center gap-1 text-sm">{!! svg_icon('doc','w-4 h-4') !!}</a>
     </div>
     <main class="max-w-6xl mx-auto p-4 md:p-8">
       @if(session('ok'))
-        <div class="fade-in mb-4 flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">✅ <span>{{ session('ok') }}</span></div>
+        <div class="fade-in mb-4 flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{!! svg_icon('check','w-4 h-4 inline-block -mt-0.5') !!}  <span>{{ session('ok') }}</span></div>
       @endif
       @if(session('plain_token'))
         <div class="fade-in mb-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm" dir="ltr">
-          🔑 New token — <b>copy it now, it won't be shown again:</b><br>
+          {!! svg_icon('key','w-4 h-4 inline-block -mt-0.5') !!}  New token — <b>copy it now, it won't be shown again:</b><br>
           <code id="plainToken" class="block mt-1 select-all rounded bg-slate-900 px-3 py-2 text-emerald-300 font-mono text-xs break-all">{{ session('plain_token') }}</code>
-          <button onclick="navigator.clipboard.writeText(document.getElementById('plainToken').innerText);this.innerText='✓ Copied'" class="mt-2 rounded bg-slate-900 px-3 py-1 text-xs text-white">Copy</button>
+          <button onclick="navigator.clipboard.writeText(document.getElementById('plainToken').innerText);this.innerText='Copied ✓'" class="mt-2 rounded bg-slate-900 px-3 py-1 text-xs text-white">Copy</button>
         </div>
       @endif
       @if($errors->any())
         <div class="fade-in mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-          <b>⚠️ خطا در فرم:</b>
+          <b>{!! svg_icon('warn','w-4 h-4 inline-block -mt-0.5') !!}  خطا در فرم:</b>
           <ul class="mt-1 list-disc pr-5">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul>
         </div>
       @endif

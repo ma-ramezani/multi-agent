@@ -70,6 +70,8 @@ class AgentApiController extends Controller
             'stream' => 'nullable|boolean',
         ]);
 
+        \App\Neuron\PromptGuard::check($data['message'], 'api');
+
         $session = null;
         if (!empty($data['thread_id'])) {
             $session = ChatSession::where('thread_id', $data['thread_id'])->where('agent_id', $agent->id)->first();

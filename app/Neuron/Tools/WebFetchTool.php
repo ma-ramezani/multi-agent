@@ -104,7 +104,12 @@ class WebFetchTool extends Tool
             return ToolOutput::text('Invalid URL. Must start with http:// or https://');
         }
         $parts = @parse_url($url);
-        if (empty($parts['host']) || !self::hostAllowed($parts['host'])) {
+        if (empty($parts['host'])) {
+            return ToolOutput::text('Invalid URL.');
+        }
+        $strict = \App\Models\SecuritySetting::bool('webfetch_ssrf_strict');
+        if ($strict && !self::hostAllowed($parts['host'])) {
+            \App\Models\SecurityEvent::log('ssrf_blocked', 'درخواست فایل به مقصد داخلی مسدود شد', 'blocked', ['host' => mb_substr($parts['host'], 0, 120)]);
             return ToolOutput::text('Blocked by security policy: internal or unresolvable hosts cannot be fetched. Only public web pages are allowed.');
         }
         try {
@@ -137,7 +142,8 @@ class WebFetchTool extends Tool
                         $next = ($p['scheme'] ?? 'https') . '://' . ($p['host'] ?? '') . (str_starts_with($next, '/') ? $next : '/' . $next);
                     }
                     $np = @parse_url($next);
-                    if (empty($np['host']) || !self::hostAllowed($np['host']) || !preg_match('#^https?://#i', $next)) {
+                    if (empty($np['host']) || !preg_match('#^https?://#i', $next) || ($strict && !self::hostAllowed($np['host']))) {
+                        \App\Models\SecurityEvent::log('ssrf_blocked', 'ریدایرکت به مقصد داخلی مسدود شد', 'blocked');
                         return ToolOutput::text('Blocked by security policy: redirect target is not an allowed public URL.');
                     }
                     $current = $next;

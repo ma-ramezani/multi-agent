@@ -2,7 +2,7 @@
 @section('title','مستندات API')
 @section('content')
 <div class="mb-5">
-  <h1 class="text-2xl font-extrabold">📖 مستندات API</h1>
+  <h1 class="text-2xl font-extrabold">{!! svg_icon('doc','w-4 h-4 inline-block -mt-0.5') !!}  مستندات API</h1>
   <p class="mt-1 text-sm text-slate-500">اتصال نرم‌افزارهای دیگر به ایجنت‌ها با توکن Bearer</p>
 </div>
 
@@ -26,7 +26,7 @@ $steps = [
 @endforeach
 
   <div class="card overflow-hidden">
-    <div class="border-b bg-slate-50/70 px-5 py-2.5 text-sm font-bold">🐚 مثال curl</div>
+    <div class="border-b bg-slate-50/70 px-5 py-2.5 text-sm font-bold">{!! svg_icon('info','w-4 h-4 inline-block -mt-0.5') !!}  مثال curl</div>
     <div dir="ltr" style="text-align:left"><pre class="md-code !m-4">curl -X POST {{ rtrim(config('app.url'),' /') }}/api/v1/agents/general-assistant/chat \
   -H "Authorization: Bearer TOKEN" \
   -H "Content-Type: application/json" \
@@ -34,7 +34,7 @@ $steps = [
   </div>
 
   <div class="card overflow-hidden">
-    <div class="border-b bg-slate-50/70 px-5 py-2.5 text-sm font-bold">🐘 مثال PHP</div>
+    <div class="border-b bg-slate-50/70 px-5 py-2.5 text-sm font-bold">{!! svg_icon('info','w-4 h-4 inline-block -mt-0.5') !!}  مثال PHP</div>
     <div dir="ltr" style="text-align:left"><pre class="md-code !m-4">$ch = curl_init("{{ rtrim(config('app.url'),' /') }}/api/v1/agents/general-assistant/chat");
 curl_setopt_array($ch, [
   CURLOPT_POST => true,

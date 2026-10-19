@@ -18,6 +18,7 @@ class DocumentReader
         'txt', 'md', 'markdown', 'csv', 'json', 'log', 'xml',
         'html', 'htm', 'pdf', 'docx', 'xlsx', 'xls', 'pptx',
         'png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp',
+        'mp3', 'wav', 'ogg', 'm4a', 'webm', 'flac',
     ];
 
     /**
@@ -69,6 +70,7 @@ class DocumentReader
                 'xlsx', 'xls' => self::spreadsheetText($absPath, $ext),
                 'pptx' => self::pptxText($absPath),
                 'png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp' => self::ocrText($absPath),
+                'mp3', 'wav', 'ogg', 'm4a', 'webm', 'flac' => self::audioText($absPath),
                 'doc' => self::unsupported('فرمت قدیمی .doc پشتیبانی نمی‌شود؛ لطفاً به .docx تبدیل کنید'),
                 'ppt' => self::unsupported('فرمت قدیمی .ppt پشتیبانی نمی‌شود؛ لطفاً به .pptx تبدیل کنید'),
                 default => self::sniffText($absPath),
@@ -340,6 +342,15 @@ class DocumentReader
             return ['text' => '', 'kind' => 'empty', 'detail' => 'از پاورپوینت متنی استخراج نشد'];
         }
         return ['text' => $text, 'kind' => 'slides', 'detail' => count($out) . ' اسلاید'];
+    }
+
+    protected static function audioText(string $path): array
+    {
+        $r = SpeechToText::transcribe($path);
+        if ($r === null) {
+            return ['text' => '', 'kind' => 'empty', 'detail' => 'فایل صوتی است؛ رونویسی خودکار روی سرور فعال نیست'];
+        }
+        return ['text' => $r['text'], 'kind' => 'audio', 'detail' => $r['detail']];
     }
 
     protected static function ocrText(string $path): array
