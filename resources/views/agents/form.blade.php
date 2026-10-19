@@ -126,8 +126,19 @@ $modelsByProvider = [
   @endif
 </div>
 
-<div class="sticky bottom-4 mt-6 flex items-center gap-3 rounded-2xl border bg-white/95 p-3 shadow-lg backdrop-blur">
-  <label class="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" name="is_active" value="1" {{ old('is_active',$agent->is_active ?? true)?'checked':'' }} class="h-4 w-4 accent-emerald-600"> فعال</label>
+{{-- ۶. سپر امنیتی (غیرقابل ویرایش، همیشه فعال) --}}
+<div class="card mt-4 border-emerald-200 bg-emerald-50/60 p-5">
+  <h2 class="mb-1 flex items-center gap-2 font-bold text-emerald-900"><span class="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-xs text-white">۶</span> 🛡 سپر امنیتی (خودکار و اجباری)</h2>
+  <ul class="mt-2 space-y-1 text-xs leading-6 text-emerald-900">
+    <li>✅ دستورالعمل امنیتی به انتهای system prompt همه ایجنت‌ها <b>الحاق می‌شود</b> و از فرم قابل حذف نیست.</li>
+    <li>✅ ابزار فایل‌سیستم فقط به پوشه <code dir="ltr">storage/app/agent-files</code> دسترسی دارد (بدون bash/نوشتن/حذف).</li>
+    <li>✅ دیتابیس فقط SELECT است؛ جداول <code dir="ltr">users, api_tokens, jobs, sessions</code> و ستون‌های رمزی مسدودند.</li>
+    <li>✅ دریافت وب فقط برای آدرس‌های عمومی است (localhost و شبکه داخلی و متادیتای ابری مسدود).</li>
+    <li>✅ خروجی مدل قبل از ذخیره، از فیلتر افشای کلید عبور می‌کند.</li>
+  </ul>
+</div>
+
+<div class="sticky bottom-4 mt-6 flex items-center gap-3 rounded-2xl border bg-white/95 p-3 shadow-lg backdrop-blur">  <label class="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" name="is_active" value="1" {{ old('is_active',$agent->is_active ?? true)?'checked':'' }} class="h-4 w-4 accent-emerald-600"> فعال</label>
   <button class="btn btn-primary flex-1 justify-center !py-2.5">💾 ذخیره ایجنت</button>
   <a href="{{ route('agents.index') }}" class="btn btn-ghost">انصراف</a>
 </div>

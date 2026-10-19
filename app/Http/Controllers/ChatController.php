@@ -77,6 +77,7 @@ class ChatController extends Controller
             $neuron = AgentFactory::make($session->agent, $session->thread_id);
             $state = $neuron->chat(new UserMessage($fullText));
             $answer = $state->getMessage()?->getContent() ?? '(پاسخی از مدل دریافت نشد)';
+            $answer = \App\Neuron\SafetyFilter::redact($answer);
 
             $sources = $this->extractRagSources($state);
             ChatMessage::create(['chat_session_id' => $session->id, 'role' => 'assistant', 'content' => $answer, 'meta' => ['sources' => $sources]]);
@@ -132,7 +133,7 @@ class ChatController extends Controller
                 flush();
             }
 
-            ChatMessage::create(['chat_session_id' => $session->id, 'role' => 'assistant', 'content' => $answer ?: '(پاسخی دریافت نشد)']);
+            ChatMessage::create(['chat_session_id' => $session->id, 'role' => 'assistant', 'content' => \App\Neuron\SafetyFilter::redact($answer) ?: '(پاسخی دریافت نشد)']);
             echo 'data: ' . json_encode(['done' => true], JSON_UNESCAPED_UNICODE) . "\n\n";
             if (ob_get_level() > 0) { ob_flush(); }
             flush();

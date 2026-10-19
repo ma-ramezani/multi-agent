@@ -92,6 +92,7 @@ class AgentApiController extends Controller
             $neuron = AgentFactory::make($agent, $session->thread_id);
             $state = $neuron->chat(new UserMessage($data['message']));
             $answer = $state->getMessage()?->getContent() ?? '(پاسخی از مدل دریافت نشد)';
+            $answer = \App\Neuron\SafetyFilter::redact($answer);
             ChatMessage::create(['chat_session_id' => $session->id, 'role' => 'assistant', 'content' => $answer]);
             return response()->json(['thread_id' => $session->thread_id, 'answer' => $answer]);
         } catch (\Throwable $e) {
@@ -121,7 +122,7 @@ class AgentApiController extends Controller
                 if (ob_get_level() > 0) { ob_flush(); }
                 flush();
             }
-            ChatMessage::create(['chat_session_id' => $session->id, 'role' => 'assistant', 'content' => $answer ?: '(بدون پاسخ)']);
+            ChatMessage::create(['chat_session_id' => $session->id, 'role' => 'assistant', 'content' => \App\Neuron\SafetyFilter::redact($answer) ?: '(بدون پاسخ)']);
             echo 'data: ' . json_encode(['done' => true, 'thread_id' => $session->thread_id], JSON_UNESCAPED_UNICODE) . "\n\n";
             if (ob_get_level() > 0) { ob_flush(); }
             flush();

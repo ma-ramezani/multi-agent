@@ -48,7 +48,8 @@ class DynamicAgent extends Agent
         if (!$prompt) {
             $prompt = 'شما یک دستیار هوشمند فارسی‌زبان هستید که با فریم‌ورک Neuron AI ساخته شده‌اید. دقیق، مودب و کاربردی پاسخ دهید.';
         }
-        return new SystemMessage($prompt);
+        // Enforced guardrails: always appended, not editable from UI.
+        return new SystemMessage(SecurityPolicy::apply($prompt));
     }
 
     protected function tools(): array

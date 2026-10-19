@@ -129,4 +129,15 @@ class OpenCodeGo extends OpenAILike
 
         return new ProviderResponse(message: $message);
     }
+
+    /**
+     * Some gateways (OpenCode Go included) return `content: null` when the
+     * model emits ONLY tool calls — standard OpenAI behavior. Neuron 4.1
+     * reads $message['content'] unconditionally and crashes with
+     * "Undefined array key content", killing the whole turn.
+     */
+    protected function createAssistantMessage(array $message): AssistantMessage
+    {
+        return new AssistantMessage($message['content'] ?? '');
+    }
 }
