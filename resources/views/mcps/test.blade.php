@@ -42,6 +42,9 @@
         @endforeach
       </div>
     @endif
+    @if(!empty($skipped))
+      <p class="mt-2 text-xs text-amber-600">نادیده گرفته شد (anyOf پشتیبانی نمی‌شود): {{ implode(', ', $skipped) }}</p>
+    @endif
   @endif
   @if($toolsError)
     <p class="mt-2 text-xs text-red-600">خطا در دریافت ابزارها: {{ $toolsError }}</p>

@@ -65,22 +65,26 @@ class AgentFactory
 
     protected static function attachMcpTools(BaseAgent $instance, Agent $agent): void
     {
-        try {
-            $servers = $agent->mcpServers()->where('is_active', true)->get();
-            foreach ($servers as $server) {
+        $servers = $agent->mcpServers()->where('is_active', true)->get();
+        foreach ($servers as $server) {
+            try {
                 $cfg = ['url' => $server->url];
                 if (!empty($server->headers)) {
                     $cfg['headers'] = $server->headers;
                 }
-                $connector = \NeuronAI\MCP\McpConnector::make($cfg);
-                $tools = $connector->tools();
-                if (!empty($tools)) {
-                    $instance->addTool($tools);
+                $res = \App\Services\McpService::listToolsSafe($server->url, $server->headers);
+                if (!empty($res['tools'])) {
+                    $instance->addTool($res['tools']);
                 }
+                if (!empty($res['skipped'])) {
+                    \App\Models\SecurityEvent::log('mcp_warn', 'برخی ابزارهای MCP نادیده گرفته شدند: '.implode(', ', $res['skipped']), 'warn', ['agent_id' => $agent->id, 'server' => $server->slug]);
+                }
+                if ($res['error'] && empty($res['tools'])) {
+                    \App\Models\SecurityEvent::log('mcp_error', 'خطا در اتصال MCP '.$server->slug.': '.mb_substr($res['error'], 0, 200), 'warn', ['agent_id' => $agent->id]);
+                }
+            } catch (\Throwable $e) {
+                \App\Models\SecurityEvent::log('mcp_error', 'خطا در اتصال MCP '.$server->slug.': '.mb_substr($e->getMessage(), 0, 200), 'warn', ['agent_id' => $agent->id]);
             }
-        } catch (\Throwable $e) {
-            // MCP failures must not kill the agent — log and continue
-            \App\Models\SecurityEvent::log('mcp_error', 'خطا در اتصال MCP: ' . mb_substr($e->getMessage(), 0, 200), 'warn', ['agent_id' => $agent->id]);
         }
     }
 }

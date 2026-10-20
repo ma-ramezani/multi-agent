@@ -83,18 +83,16 @@ class McpController extends Controller
     {
         $headers = $mcp->headers ?? [];
         $result = McpServer::healthCheck($mcp->url, $headers);
-        // Also try to list tools via McpConnector if reachable
         $tools = null;
         $toolsError = null;
+        $skipped = [];
         if ($result['target_ok']) {
-            try {
-                $connector = \NeuronAI\MCP\McpConnector::make(['url' => $mcp->url] + ($headers ? ['headers' => $headers] : []));
-                $tools = array_map(fn($t) => ['name' => $t->getName(), 'description' => $t->getDescription()], $connector->tools());
-            } catch (\Throwable $e) {
-                $toolsError = mb_substr($e->getMessage(), 0, 400);
-            }
+            $res = \App\Services\McpService::listToolsSafe($mcp->url, $headers ?: null);
+            $tools = array_map(fn($t) => ['name' => $t->getName(), 'description' => $t->getDescription()], $res['tools']);
+            $skipped = $res['skipped'] ?? [];
+            $toolsError = $res['error'];
         }
-        return view('mcps.test', compact('mcp', 'result', 'tools', 'toolsError'));
+        return view('mcps.test', compact('mcp', 'result', 'tools', 'toolsError', 'skipped'));
     }
 
     public function checkPrereq(Request $request)
