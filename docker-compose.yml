@@ -1,0 +1,81 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: neuron-app
+    restart: unless-stopped
+    depends_on:
+      ollama:
+        condition: service_healthy
+      stt:
+        condition: service_healthy
+    environment:
+      APP_URL: ${APP_URL:-http://localhost:8000}
+      APP_KEY: ${APP_KEY:-}
+      OLLAMA_URL: http://ollama:11434/api
+      STT_SERVER_URL: http://stt:11437
+      OPENCODE_GO_API_KEY: ${OPENCODE_GO_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    env_file:
+      - path: ./.env
+        required: false
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    volumes:
+      - app-sqlite:/var/www/html/database
+      - app-storage:/var/www/html/storage
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/up"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  ollama:
+    image: ollama/ollama:${OLLAMA_VERSION:-latest}
+    container_name: neuron-ollama
+    restart: unless-stopped
+    entrypoint: ["/usr/local/bin/ollama-entrypoint.sh"]
+    environment:
+      OLLAMA_HOST: 0.0.0.0
+      OLLAMA_EMBED_MODEL: ${OLLAMA_EMBED_MODEL:-nomic-embed-text}
+    volumes:
+      - ollama-data:/root/.ollama
+      - ./docker/ollama-entrypoint.sh:/usr/local/bin/ollama-entrypoint.sh:ro
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+
+  stt:
+    build:
+      context: ./docker/stt
+      args:
+        STT_MODEL: ${STT_MODEL:-large-v3-turbo}
+    container_name: neuron-stt
+    restart: unless-stopped
+    environment:
+      STT_MODEL: ${STT_MODEL:-large-v3-turbo}
+    expose:
+      - "11437"
+    volumes:
+      - stt-cache:/srv/stt/cache
+    healthcheck:
+      test: ["CMD", "python", "-c", "import json,urllib.request; print(json.load(urllib.request.urlopen('http://127.0.0.1:11437/health', timeout=10)))"]
+      interval: 60s
+      timeout: 15s
+      retries: 20
+      start_period: 600s
+
+volumes:
+  app-sqlite: {}
+  app-storage: {}
+  ollama-data: {}
+  stt-cache: {}
