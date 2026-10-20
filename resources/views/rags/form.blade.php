@@ -2,7 +2,7 @@
 @section('title', ($env->exists ? 'ویرایش محیط' : 'محیط جدید'))
 @section('content')
 <div class="mb-5">
-  <h1 class="text-2xl font-extrabold">{{ $env->exists ? '{!! svg_icon('settings','w-4 h-4 inline-block -mt-0.5') !!}  ویرایش محیط RAG' : '＋ محیط RAG جدید' }}</h1>
+  <h1 class="text-2xl font-extrabold">@if($env->exists){!! svg_icon('settings','w-4 h-4 inline-block -mt-0.5') !!} ویرایش محیط RAG @else <span class="text-slate-400">＋</span> محیط RAG جدید @endif</h1>
   <p class="mt-1 text-sm text-slate-500">امبدینگ لوکال Ollama رایگان است و نیازی به کلید ندارد.</p>
 </div>
 <form method="POST" action="{{ $env->exists ? route('rags.update',$env) : route('rags.store') }}">

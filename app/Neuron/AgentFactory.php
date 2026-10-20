@@ -47,15 +47,40 @@ class AgentFactory
             $envs = RagEnvironment::whereIn('id', $ragIds)->where('is_active', true)->get();
             if ($envs->isNotEmpty()) {
                 $primary = $envs->first();
-                return DynamicRag::fromConfig($config, [
+                $instance = DynamicRag::fromConfig($config, [
                     'environment_ids' => $envs->pluck('id')->all(),
                     'primary_env' => $primary,
                     'top_k' => (int) ($agent->rag_top_k ?: 4),
                 ], $threadId)->toolMaxRuns((int) ($agent->max_tool_runs ?: 10));
+                self::attachMcpTools($instance, $agent);
+                return $instance;
             }
         }
 
-        return DynamicAgent::fromConfig($config, $threadId)
+        $instance = DynamicAgent::fromConfig($config, $threadId)
             ->toolMaxRuns((int) ($agent->max_tool_runs ?: 10));
+        self::attachMcpTools($instance, $agent);
+        return $instance;
+    }
+
+    protected static function attachMcpTools(BaseAgent $instance, Agent $agent): void
+    {
+        try {
+            $servers = $agent->mcpServers()->where('is_active', true)->get();
+            foreach ($servers as $server) {
+                $cfg = ['url' => $server->url];
+                if (!empty($server->headers)) {
+                    $cfg['headers'] = $server->headers;
+                }
+                $connector = \NeuronAI\MCP\McpConnector::make($cfg);
+                $tools = $connector->tools();
+                if (!empty($tools)) {
+                    $instance->addTool($tools);
+                }
+            }
+        } catch (\Throwable $e) {
+            // MCP failures must not kill the agent — log and continue
+            \App\Models\SecurityEvent::log('mcp_error', 'خطا در اتصال MCP: ' . mb_substr($e->getMessage(), 0, 200), 'warn', ['agent_id' => $agent->id]);
+        }
     }
 }

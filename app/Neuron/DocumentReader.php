@@ -22,12 +22,13 @@ class DocumentReader
     ];
 
     /**
-     * Normalize extracted text: strip invisible bidi marks left by OCR/PDF
-     * parsers, unify Arabic glyphs to Persian, collapse whitespace.
-     * Makes both keyword search and the LLM's reading more reliable.
+     * Normalize extracted text: strip invisible bidi marks, fix reversed RTL
+     * lines left by some PDF generators, unify glyphs, collapse whitespace.
      */
     public static function normalize(string $text): string
     {
+        // Fix reversed Persian lines (common in PDFs generated with visual-order BIDI)
+        $text = self::fixReversedPersian($text);
         // invisible directional / zero-width marks
         $text = str_replace(["\u{200E}", "\u{200F}", "\u{200B}", "\u{FEFF}"], '', $text);
         // Tesseract inserts ZWNJ between words as bidi glue; a plain space is
@@ -41,6 +42,57 @@ class DocumentReader
         $text = preg_replace('/[ \t\x{00A0}]+/u', ' ', $text);
         $text = preg_replace('/\n{3,}/', "\n\n", $text);
         return trim($text);
+    }
+
+    /**
+     * Detect and fix lines where Persian text was extracted in reverse
+     * visual order (e.g. "دنک ظفح" instead of "حفظ کردن"). Heuristic:
+     * if the reversed line contains more common Persian words than the
+     * original, we keep the reversed version.
+     */
+    protected static function fixReversedPersian(string $text): string
+    {
+        $common = [' است ', ' در ', ' به ', ' را ', ' از ', ' که ', ' این ', ' برای ', ' با ', ' بر ', ' هر ', ' یک ', ' شد ', ' شود ', ' کند ', ' کنید ', ' باشد '];
+        $lines = explode("\n", $text);
+        foreach ($lines as &$line) {
+            $trim = trim($line);
+            if ($trim === '' || !preg_match('/[\x{0600}-\x{06FF}]/u', $trim)) {
+                continue;
+            }
+            // Skip lines that are clearly code/URLs
+            if (preg_match('/https?:\/\//', $trim) || preg_match('/^\s*[A-Za-z0-9_.-]+@[A-Za-z]/', $trim)) {
+                continue;
+            }
+            // Count common words in original vs reversed
+            $rev = self::mbStrRev($trim);
+            $origScore = 0;
+            $revScore = 0;
+            $lowOrig = ' ' . mb_strtolower($trim) . ' ';
+            $lowRev = ' ' . mb_strtolower($rev) . ' ';
+            foreach ($common as $w) {
+                if (str_contains($lowOrig, $w)) {
+                    $origScore++;
+                }
+                if (str_contains($lowRev, $w)) {
+                    $revScore++;
+                }
+            }
+            // Also check if original starts with Latin but reversed starts with Persian (common in reversed)
+            $startsPersianOrig = (bool) preg_match('/^[\x{0600}-\x{06FF}]/u', ltrim($trim));
+            $startsPersianRev = (bool) preg_match('/^[\x{0600}-\x{06FF}]/u', ltrim($rev));
+            // Heuristic: if reversed scores higher, or original doesn't start with Persian but reversed does
+            if ($revScore > $origScore + 1 || (!$startsPersianOrig && $startsPersianRev && $revScore >= $origScore)) {
+                $line = $rev;
+            }
+        }
+        unset($line);
+        return implode("\n", $lines);
+    }
+
+    protected static function mbStrRev(string $s): string
+    {
+        $chars = preg_split('//u', $s, -1, PREG_SPLIT_NO_EMPTY);
+        return $chars ? implode('', array_reverse($chars)) : $s;
     }
 
     /**

@@ -9,7 +9,7 @@
   <a href="{{ route('agents.create') }}" class="btn btn-primary">＋ ایجنت جدید</a>
 </div>
 
-<div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
   <a href="{{ route('agents.index') }}" class="card card-hover p-5">
     <div class="flex items-center justify-between"><span class="text-3xl">{!! svg_icon('brain','w-4 h-4 inline-block -mt-0.5') !!} </span><span class="text-3xl font-extrabold">{{ fa_num($agents) }}</span></div>
     <div class="mt-2 font-bold">ایجنت‌ها</div><div class="text-xs text-slate-500">مدیریت پرووایدر، ابزار و RAG ←</div>
@@ -17,6 +17,10 @@
   <a href="{{ route('rags.index') }}" class="card card-hover p-5">
     <div class="flex items-center justify-between"><span class="text-3xl">{!! svg_icon('book','w-4 h-4 inline-block -mt-0.5') !!} </span><span class="text-3xl font-extrabold">{{ fa_num($envs) }}</span></div>
     <div class="mt-2 font-bold">محیط‌های دانش (RAG)</div><div class="text-xs text-slate-500">اسناد و چانک‌های ایندکس‌شده ←</div>
+  </a>
+  <a href="{{ route('mcps.index') }}" class="card card-hover p-5">
+    <div class="flex items-center justify-between"><span class="text-3xl">{!! svg_icon('settings','w-4 h-4 inline-block -mt-0.5') !!} </span><span class="text-3xl font-extrabold">{{ fa_num($mcps ?? 0) }}</span></div>
+    <div class="mt-2 font-bold">سرورهای MCP</div><div class="text-xs text-slate-500">اتصال http به ابزارهای خارجی ←</div>
   </a>
   <a href="{{ route('chats.index') }}" class="card card-hover p-5">
     <div class="flex items-center justify-between"><span class="text-3xl">{!! svg_icon('chat','w-4 h-4 inline-block -mt-0.5') !!} </span><span class="text-3xl font-extrabold">{{ fa_num($sessions) }}</span></div>

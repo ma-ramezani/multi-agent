@@ -47,6 +47,7 @@
     </div>
     <div class="mt-1.5 flex flex-wrap gap-1.5 text-[11px]">
       <span class="font-semibold text-slate-500">{!! svg_icon('book','w-4 h-4 inline-block -mt-0.5') !!}  {{ fa_num(count($a->resolvedRagIds())) }} محیط RAG</span>
+      <span class="text-slate-400">· {!! svg_icon('settings','w-4 h-4 inline-block -mt-0.5') !!}  {{ fa_num($a->mcp_servers_count ?? 0) }} MCP</span>
       <span class="text-slate-400">· {!! svg_icon('chat','w-4 h-4 inline-block -mt-0.5') !!}  {{ fa_num($a->chatSessions_count) }} گفتگو</span>
     </div>
     <div class="mt-4 flex flex-wrap gap-2 border-t pt-3">

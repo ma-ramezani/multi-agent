@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <title>@yield('title', 'پلتفرم ایجنت‌ها') · Neuron</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>{!! svg_icon('brain','w-4 h-4 inline-block -mt-0.5') !!} </text></svg>">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🤖%3C/text%3E%3C/svg%3E">
 <style>
 @font-face{font-family:'Vazirmatn';src:url('/fonts/Vazirmatn-Regular.woff2') format('woff2');font-weight:400;font-display:swap}
 @font-face{font-family:'Vazirmatn';src:url('/fonts/Vazirmatn-Medium.woff2') format('woff2');font-weight:500;font-display:swap}
@@ -69,6 +69,7 @@ tailwind.config = {
       <a href="{{ route('dashboard') }}" class="navlink {{ request()->routeIs('dashboard')?'active':'' }}">{!! svg_icon('home','w-5 h-5') !!} داشبورد</a>
       <a href="{{ route('agents.index') }}" class="navlink {{ request()->routeIs('agents.*')?'active':'' }}">{!! svg_icon('brain','w-5 h-5') !!} ایجنت‌ها</a>
       <a href="{{ route('rags.index') }}" class="navlink {{ request()->routeIs('rags.*')?'active':'' }}">{!! svg_icon('book','w-5 h-5') !!} محیط‌های RAG</a>
+      <a href="{{ route('mcps.index') }}" class="navlink {{ request()->routeIs('mcps.*')?'active':'' }}">{!! svg_icon('settings','w-5 h-5') !!} سرورهای MCP</a>
       <a href="{{ route('chats.index') }}" class="navlink {{ request()->routeIs('chats.*')?'active':'' }}">{!! svg_icon('chat','w-5 h-5') !!} چت زنده</a>
       <a href="{{ route('tokens.index') }}" class="navlink {{ request()->routeIs('tokens.*')?'active':'' }}">{!! svg_icon('key','w-5 h-5') !!} توکن‌های API</a>
       <a href="{{ route('security.index') }}" class="navlink {{ request()->routeIs('security.*')?'active':'' }}">{!! svg_icon('shield','w-5 h-5') !!} مرکز امنیت</a>
@@ -84,7 +85,7 @@ tailwind.config = {
   <div class="flex-1 min-w-0">
     <!-- Mobile topbar -->
     <div class="lg:hidden sticky top-0 z-20 bg-white/90 backdrop-blur border-b px-4 py-2 flex gap-4 overflow-x-auto text-slate-600">
-      <a href="{{ route('dashboard') }}" class="flex items-center gap-1 text-sm">{!! svg_icon('home','w-4 h-4') !!}</a><a href="{{ route('agents.index') }}" class="flex items-center gap-1 text-sm">{!! svg_icon('brain','w-4 h-4') !!}</a><a href="{{ route('rags.index') }}" class="flex items-center gap-1 text-sm">{!! svg_icon('book','w-4 h-4') !!}</a><a href="{{ route('chats.index') }}" class="flex items-center gap-1 text-sm">{!! svg_icon('chat','w-4 h-4') !!}</a>      <a href="{{ route('tokens.index') }}" class="flex items-center gap-1 text-sm">{!! svg_icon('key','w-4 h-4') !!}</a><a href="{{ route('security.index') }}" class="flex items-center gap-1 text-sm">{!! svg_icon('shield','w-4 h-4') !!}</a><a href="{{ route('api.docs') }}" class="flex items-center gap-1 text-sm">{!! svg_icon('doc','w-4 h-4') !!}</a>
+      <a href="{{ route('dashboard') }}" class="flex items-center gap-1 text-sm">{!! svg_icon('home','w-4 h-4') !!}</a><a href="{{ route('agents.index') }}" class="flex items-center gap-1 text-sm">{!! svg_icon('brain','w-4 h-4') !!}</a><a href="{{ route('rags.index') }}" class="flex items-center gap-1 text-sm">{!! svg_icon('book','w-4 h-4') !!}</a><a href="{{ route('mcps.index') }}" class="flex items-center gap-1 text-sm">{!! svg_icon('settings','w-4 h-4') !!}</a><a href="{{ route('chats.index') }}" class="flex items-center gap-1 text-sm">{!! svg_icon('chat','w-4 h-4') !!}</a>      <a href="{{ route('tokens.index') }}" class="flex items-center gap-1 text-sm">{!! svg_icon('key','w-4 h-4') !!}</a><a href="{{ route('security.index') }}" class="flex items-center gap-1 text-sm">{!! svg_icon('shield','w-4 h-4') !!}</a><a href="{{ route('api.docs') }}" class="flex items-center gap-1 text-sm">{!! svg_icon('doc','w-4 h-4') !!}</a>
     </div>
     <main class="max-w-6xl mx-auto p-4 md:p-8">
       @if(session('ok'))

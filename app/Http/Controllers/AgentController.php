@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Agent;
+use App\Models\McpServer;
 use App\Models\RagEnvironment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -11,33 +12,42 @@ class AgentController extends Controller
 {
     public function index()
     {
-        $agents = Agent::withCount('chatSessions')->orderBy('id', 'desc')->get();
+        $agents = Agent::withCount(['chatSessions', 'mcpServers'])->orderBy('id', 'desc')->get();
         return view('agents.index', compact('agents'));
     }
 
     public function create()
     {
         $envs = RagEnvironment::orderBy('name')->get();
-        return view('agents.form', ['agent' => new Agent(['provider' => 'openai', 'model' => 'gpt-4o-mini', 'temperature' => 0.7, 'is_active' => true]), 'envs' => $envs]);
+        $mcps = McpServer::where('is_active', true)->orderBy('name')->get();
+        return view('agents.form', ['agent' => new Agent(['provider' => 'openai', 'model' => 'gpt-4o-mini', 'temperature' => 0.7, 'is_active' => true]), 'envs' => $envs, 'mcps' => $mcps]);
     }
 
     public function store(Request $request)
     {
         $data = $this->validated($request);
         $data['slug'] = $data['slug'] ?: Str::slug($data['name']) . '-' . Str::random(4);
-        Agent::create($data);
+        $mcpIds = $data['mcp_server_ids'] ?? [];
+        unset($data['mcp_server_ids']);
+        $agent = Agent::create($data);
+        $agent->mcpServers()->sync($mcpIds);
         return redirect()->route('agents.index')->with('ok', 'ایجنت ساخته شد');
     }
 
     public function edit(Agent $agent)
     {
         $envs = RagEnvironment::orderBy('name')->get();
-        return view('agents.form', compact('agent', 'envs'));
+        $mcps = McpServer::where('is_active', true)->orderBy('name')->get();
+        return view('agents.form', compact('agent', 'envs', 'mcps'));
     }
 
     public function update(Request $request, Agent $agent)
     {
-        $agent->update($this->validated($request, $agent->id));
+        $data = $this->validated($request, $agent->id);
+        $mcpIds = $data['mcp_server_ids'] ?? [];
+        unset($data['mcp_server_ids']);
+        $agent->update($data);
+        $agent->mcpServers()->sync($mcpIds);
         return redirect()->route('agents.index')->with('ok', 'ایجنت به‌روز شد');
     }
 
@@ -67,6 +77,8 @@ class AgentController extends Controller
             'tools.*' => 'string',
             'rag_environment_ids' => 'nullable|array',
             'rag_environment_ids.*' => 'integer|exists:rag_environments,id',
+            'mcp_server_ids' => 'nullable|array',
+            'mcp_server_ids.*' => 'integer|exists:mcp_servers,id',
             'is_active' => 'nullable|boolean',
         ]);
 
@@ -79,6 +91,7 @@ class AgentController extends Controller
         }
         $v['tools'] = array_values($v['tools'] ?? []);
         $v['rag_environment_ids'] = array_values($v['rag_environment_ids'] ?? []);
+        $v['mcp_server_ids'] = array_values($v['mcp_server_ids'] ?? []);
         $v['is_active'] = $request->boolean('is_active', true);
         $v['temperature'] = (float) ($v['temperature'] ?? 0.7);
         return $v;

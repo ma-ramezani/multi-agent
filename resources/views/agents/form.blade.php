@@ -126,9 +126,28 @@ $modelsByProvider = [
   @endif
 </div>
 
-{{-- ۶. سپر امنیتی (غیرقابل ویرایش، همیشه فعال) --}}
+{{-- ۶. MCP --}}
+<div class="card mt-4 p-5">
+  <h2 class="mb-1 flex items-center gap-2 font-bold"><span class="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs text-white">۶</span> اتصال MCP (ابزارهای خارجی — http)</h2>
+  <p class="mb-4 text-xs text-slate-500">سرورهای MCP از نوع <code dir="ltr">http</code> را انتخاب کنید تا ابزارهایشان به این ایجنت اضافه شود. مدیریت سرورها در <a class="font-semibold text-blue-600" href="{{ route('mcps.index') }}">مرکز MCP</a>.</p>
+  @if($mcps->isEmpty())
+    <p class="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">هنوز سرور MCP ثبت نشده. <a class="font-semibold text-blue-600" href="{{ route('mcps.create') }}">＋ افزودن سرور</a></p>
+  @else
+    <div class="grid grid-cols-1 gap-2 md:grid-cols-2">
+      @foreach($mcps as $m)
+        <label class="flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition hover:border-violet-300 hover:bg-violet-50/50 has-[:checked]:border-violet-500 has-[:checked]:bg-violet-50">
+          <input type="checkbox" name="mcp_server_ids[]" value="{{ $m->id }}" {{ in_array($m->id, old('mcp_server_ids', $agent->mcpServers->pluck('id')->all() ?? []))?'checked':'' }} class="mt-1 h-4 w-4 accent-violet-600">
+          <span><b class="text-sm">{!! svg_icon('settings','w-4 h-4 inline-block -mt-0.5') !!} {{ $m->name }}</b> <span class="font-mono text-[11px] text-slate-400" dir="ltr">{{ $m->url }}</span><br>
+          <span class="text-xs text-slate-500">{{ $m->description ?: 'بدون توضیح' }}</span></span>
+        </label>
+      @endforeach
+    </div>
+  @endif
+</div>
+
+{{-- ۷. سپر امنیتی (غیرقابل ویرایش، همیشه فعال) --}}
 <div class="card mt-4 border-emerald-200 bg-emerald-50/60 p-5">
-  <h2 class="mb-1 flex items-center gap-2 font-bold text-emerald-900"><span class="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-xs text-white">۶</span> {!! svg_icon('shield','w-4 h-4 inline-block -mt-0.5') !!}  سپر امنیتی (خودکار و اجباری)</h2>
+  <h2 class="mb-1 flex items-center gap-2 font-bold text-emerald-900"><span class="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-xs text-white">۷</span> {!! svg_icon('shield','w-4 h-4 inline-block -mt-0.5') !!}  سپر امنیتی (خودکار و اجباری)</h2>
   <ul class="mt-2 space-y-1 text-xs leading-6 text-emerald-900">
     <li>{!! svg_icon('check','w-4 h-4 inline-block -mt-0.5') !!}  دستورالعمل امنیتی به انتهای system prompt همه ایجنت‌ها <b>الحاق می‌شود</b> و از فرم قابل حذف نیست.</li>
     <li>{!! svg_icon('check','w-4 h-4 inline-block -mt-0.5') !!}  ابزار فایل‌سیستم فقط به پوشه <code dir="ltr">storage/app/agent-files</code> دسترسی دارد (بدون bash/نوشتن/حذف).</li>

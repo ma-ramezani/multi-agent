@@ -46,6 +46,11 @@ class Agent extends Model
         return $this->rag_environment_ids ?? [];
     }
 
+    public function mcpServers()
+    {
+        return $this->belongsToMany(McpServer::class, 'agent_mcp_server');
+    }
+
     public static function providers(): array
     {
         return [
