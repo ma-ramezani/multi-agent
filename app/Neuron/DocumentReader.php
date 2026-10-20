@@ -95,12 +95,68 @@ class DocumentReader
         return $chars ? implode('', array_reverse($chars)) : $s;
     }
 
+    public static function isGarbage(string $text): bool
+    {
+        $len = mb_strlen($text);
+        if ($len < 20) {
+            return false;
+        }
+        // Count control characters (except \n, \r, \t)
+        $ctrl = preg_match_all('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', $text);
+        if ($ctrl / max(1, $len) > 0.02) {
+            return true;
+        }
+        // Count characters that are not Persian/latin/digit/punctuation/space
+        // If too many weird symbols, likely binary garbage
+        $allowed = preg_match_all('/[\p{L}\p{N}\s\.\,\;\:\!\?\-\(\)\[\]\{\}\/\+\=\*\%\&\@\#\|\_\"\'\`]/u', $text);
+        if ($allowed / max(1, $len) < 0.6) {
+            return true;
+        }
+        // Check for excessive backticks, @, and control-like sequences typical of binary PDF garbage
+        if (substr_count($text, '`') > $len * 0.02 && substr_count($text, '@') > $len * 0.01) {
+            return true;
+        }
+        return false;
+    }
+
     /**
      * @return array{text: string, kind: string, detail: string}
      */
     public static function read(string $absPath, ?string $mime = null, ?string $filename = null, bool $forceOcr = false): array
     {
         $ext = strtolower(pathinfo($filename ?? $absPath, PATHINFO_EXTENSION));
+        // Fallback: if filename has no extension, try actual file path and mime, then real file type
+        if ($ext === '') {
+            $ext = strtolower(pathinfo($absPath, PATHINFO_EXTENSION));
+        }
+        if ($ext === '' && $mime) {
+            $map = ['application/pdf' => 'pdf', 'application/msword' => 'doc', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation' => 'pptx', 'application/vnd.ms-powerpoint' => 'ppt', 'application/vnd.ms-excel' => 'xls', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx', 'text/plain' => 'txt'];
+            $ext = $map[strtolower(trim(explode(';', $mime)[0]))] ?? '';
+        }
+        // Last resort: detect via file header (handles mislabeled PDFs like .pdf that are actually docx)
+        if ($ext === '' || !in_array($ext, self::SUPPORTED_EXTENSIONS, true)) {
+            $realMime = @mime_content_type($absPath);
+            if ($realMime) {
+                $map2 = ['application/pdf' => 'pdf', 'application/zip' => 'docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation' => 'pptx'];
+                $detected = $map2[strtolower(trim(explode(';', $realMime)[0]))] ?? '';
+                if ($detected && in_array($detected, self::SUPPORTED_EXTENSIONS, true)) {
+                    $ext = $detected;
+                }
+            }
+            // Fallback via `file` command for Office docs (zip-based)
+            if ($ext === '' || $ext === 'txt') {
+                $fileOut = trim((string) @shell_exec('file -b ' . escapeshellarg($absPath) . ' 2>/dev/null'));
+                if (stripos($fileOut, 'Word 2007') !== false || stripos($fileOut, 'Microsoft Word') !== false) {
+                    $ext = 'docx';
+                } elseif (stripos($fileOut, 'PowerPoint 2007') !== false || stripos($fileOut, 'Microsoft PowerPoint') !== false) {
+                    $ext = 'pptx';
+                } elseif (stripos($fileOut, 'Excel 2007') !== false) {
+                    $ext = 'xlsx';
+                } elseif (stripos($fileOut, 'PDF document') !== false) {
+                    $ext = 'pdf';
+                }
+            }
+        }
 
         if (!is_file($absPath)) {
             return ['text' => '', 'kind' => 'missing', 'detail' => 'فایل یافت نشد'];
@@ -119,12 +175,12 @@ class DocumentReader
                 'html', 'htm' => self::htmlText($absPath),
                 'pdf' => self::pdfText($absPath),
                 'docx' => self::docxText($absPath),
+                'doc' => self::docText($absPath),
                 'xlsx', 'xls' => self::spreadsheetText($absPath, $ext),
                 'pptx' => self::pptxText($absPath),
+                'ppt' => self::pptText($absPath),
                 'png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp' => self::ocrText($absPath),
                 'mp3', 'wav', 'ogg', 'm4a', 'webm', 'flac' => self::audioText($absPath),
-                'doc' => self::unsupported('فرمت قدیمی .doc پشتیبانی نمی‌شود؛ لطفاً به .docx تبدیل کنید'),
-                'ppt' => self::unsupported('فرمت قدیمی .ppt پشتیبانی نمی‌شود؛ لطفاً به .pptx تبدیل کنید'),
                 default => self::sniffText($absPath),
             };
         } catch (\Throwable $e) {
@@ -196,8 +252,23 @@ class DocumentReader
             }
         }
         $text = implode("\n\n", $pages);
-        if ($text !== '') {
+        if ($text !== '' && !self::isGarbage($text)) {
             return ['text' => $text, 'kind' => 'text', 'detail' => count($pages) . ' صفحه'];
+        }
+        // Empty or garbage (e.g. binary garbage from encrypted/scanned PDF) → OCR fallback
+        if ($text !== '' && self::isGarbage($text)) {
+            // Try OCR as fallback for garbled PDFs
+            try {
+                $count = count($pdf->getPages());
+            } catch (\Throwable) {
+                $count = null;
+            }
+            $ocr = self::pdfOcrText($path, $count);
+            if ($ocr['text'] !== '') {
+                return $ocr;
+            }
+            // If OCR also fails, return garbage as last resort with warning
+            return ['text' => $text, 'kind' => 'text', 'detail' => count($pages) . ' صفحه (متن ناخوانا — پیشنهاد OCR)'];
         }
         // No embedded text → scanned/image PDF → OCR fallback
         try {
@@ -318,6 +389,72 @@ class DocumentReader
             return ['text' => '', 'kind' => 'empty', 'detail' => 'از Word متنی استخراج نشد'];
         }
         return ['text' => $text, 'kind' => 'text', 'detail' => count($parts) . ' پاراگراف'];
+    }
+
+    protected static function docText(string $path): array
+    {
+        // Try catdoc, antiword, libreoffice, then strings fallback
+        $bin = trim((string) @shell_exec('which catdoc 2>/dev/null'));
+        if ($bin !== '') {
+            $out = @shell_exec(escapeshellarg($bin) . ' ' . escapeshellarg($path) . ' 2>/dev/null');
+            if (is_string($out) && trim($out) !== '' && !self::isGarbage($out)) {
+                return ['text' => trim($out), 'kind' => 'text', 'detail' => 'catdoc'];
+            }
+        }
+        $bin = trim((string) @shell_exec('which antiword 2>/dev/null'));
+        if ($bin !== '') {
+            $out = @shell_exec(escapeshellarg($bin) . ' ' . escapeshellarg($path) . ' 2>/dev/null');
+            if (is_string($out) && trim($out) !== '' && !self::isGarbage($out)) {
+                return ['text' => trim($out), 'kind' => 'text', 'detail' => 'antiword'];
+            }
+        }
+        $bin = trim((string) @shell_exec('which libreoffice 2>/dev/null'));
+        if ($bin !== '') {
+            $tmpdir = sys_get_temp_dir() . '/doc2txt_' . bin2hex(random_bytes(4));
+            @mkdir($tmpdir, 0700, true);
+            @exec(escapeshellarg($bin) . ' --headless --convert-to txt:Text --outdir ' . escapeshellarg($tmpdir) . ' ' . escapeshellarg($path) . ' 2>/dev/null', $o, $code);
+            $txtFile = $tmpdir . '/' . pathinfo($path, PATHINFO_FILENAME) . '.txt';
+            if (is_file($txtFile)) {
+                $txt = trim((string) @file_get_contents($txtFile));
+                @unlink($txtFile);
+                @rmdir($tmpdir);
+                if ($txt !== '' && !self::isGarbage($txt)) {
+                    return ['text' => $txt, 'kind' => 'text', 'detail' => 'libreoffice'];
+                }
+            }
+            @rmdir($tmpdir);
+        }
+        // Fallback: strings extraction (works for many .doc with embedded text)
+        $out = @shell_exec('strings ' . escapeshellarg($path) . ' 2>/dev/null | head -n 2000');
+        if (is_string($out) && trim($out) !== '') {
+            // Filter to keep only Persian/latin lines
+            $lines = array_filter(array_map('trim', explode("\n", $out)), fn($l) => mb_strlen($l) > 3 && preg_match('/[\x{0600}-\x{06FF}A-Za-z]/u', $l));
+            $txt = implode("\n", array_slice($lines, 0, 500));
+            if ($txt !== '' && !self::isGarbage($txt)) {
+                return ['text' => $txt, 'kind' => 'text', 'detail' => 'strings'];
+            }
+        }
+        return self::unsupported('فرمت قدیمی .doc با این ابزار قابل خواندن نیست؛ لطفاً به .docx تبدیل کنید یا نسخه‌ی PDF آن را بارگذاری کنید');
+    }
+
+    protected static function pptText(string $path): array
+    {
+        $bin = trim((string) @shell_exec('which catppt 2>/dev/null'));
+        if ($bin !== '') {
+            $out = @shell_exec(escapeshellarg($bin) . ' ' . escapeshellarg($path) . ' 2>/dev/null');
+            if (is_string($out) && trim($out) !== '' && !self::isGarbage($out)) {
+                return ['text' => trim($out), 'kind' => 'text', 'detail' => 'catppt'];
+            }
+        }
+        $out = @shell_exec('strings ' . escapeshellarg($path) . ' 2>/dev/null | head -n 2000');
+        if (is_string($out) && trim($out) !== '') {
+            $lines = array_filter(array_map('trim', explode("\n", $out)), fn($l) => mb_strlen($l) > 3 && preg_match('/[\x{0600}-\x{06FF}A-Za-z]/u', $l));
+            $txt = implode("\n", array_slice($lines, 0, 500));
+            if ($txt !== '' && !self::isGarbage($txt)) {
+                return ['text' => $txt, 'kind' => 'text', 'detail' => 'strings'];
+            }
+        }
+        return self::unsupported('فرمت قدیمی .ppt با این ابزار قابل خواندن نیست؛ لطفاً به .pptx تبدیل کنید');
     }
 
     protected static function spreadsheetText(string $path, string $ext): array
